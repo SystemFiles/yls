@@ -15,21 +15,21 @@ If you'd like to contribute some code or have a suggestion/issue, please check t
 ## Usage
 
 1. Create a new project in the Google Developers Console:
-  a. Go to the Google Developers Console.
-  b. Create a new project by clicking on the "Create Project" button in the top right corner.
-  c. Enter a name for your project and click on the "Create" button.
+  - Go to the Google Developers Console.
+  - Create a new project by clicking on the "Create Project" button in the top right corner.
+  - Enter a name for your project and click on the "Create" button.
 
 2. Enable the YouTube Data API v3:
-  a. In the Google Developers Console, select your project.
-  b. Click on the "Enable APIs and Services" button.
-  c. Search for "YouTube Data API v3" and click on it.
-  d. Click on the "Enable" button.
+  - In the Google Developers Console, select your project.
+  - Click on the "Enable APIs and Services" button.
+  - Search for "YouTube Data API v3" and click on it.
+  - Click on the "Enable" button.
 
 3. Create OAuth2.0 credentials:
-  a. In the Google Developers Console, select your project.
-  b. Click on the "Create Credentials" button and select "OAuth client ID".
-  c. Select "Desktop App" as the application type.
-  d. Enter a name for your OAuth client ID and click on the "Create" button.
+  - In the Google Developers Console, select your project.
+  - Click on the "Create Credentials" button and select "OAuth client ID".
+  - Select "Desktop App" as the application type.
+  - Enter a name for your OAuth client ID and click on the "Create" button.
 
 4. Click on the "Download" button to download the client secret JSON file.
 > Note: Make sure to update the `redirect_uris` field in the downloaded file to contain `urn:ietf:wg:oauth:2.0:oob`
@@ -43,8 +43,6 @@ Create a file somewhere to configure Streams (you can call it whatever you like)
 Your file should follow be configured as shown:
 
 ```yaml
-# this parameter is used by Google Oauth to configure the OIDC authorization flow
-oauthConfigPath: "/path/to/oauth_config.json"
 streams:
   - name: "Friendly name for logs and behind-the-scenes stuff"
     titlePrefix: "Title of Stream Broadcast"
@@ -54,7 +52,7 @@ streams:
     privacyLevel: "public" # can be one of 'private', 'public', 'unlisted'
 ```
 
-> If you'd like you can copy the [example configuration]() and simply edit it.
+> If you'd like you can copy the [example configuration](/streams.config.example.yaml) and simply edit it.
 
 ```bash
 # assumes you are currently in the git repository
@@ -71,34 +69,23 @@ The app will manage schedules for you once configured and will respond to config
 
 ```bash
 Usage:
-  yls help [command] [flags]
-
-Flags:
-  -h, --help   help for help
-
-Global Flags:
-      --debug                  specifies whether Debug-level logs should be shown. This can be very noisy (be warned)
-      --dry-run                specifies whether YLS should be run in dry-run mode. This means YLS will make no changes, but will help evaluate changes that would be done
-      --oauth-config string    (required) the path to an associated OAuth configuration file (JSON) that is downloaded from Google for generation of the authorization token
-  -c, --stream-config string   the path to the file which specifies configuration for youtube stream schedules
-```
-
-```bash
-Usage:
   yls start [flags]
 
 Flags:
-  -h, --help             help for start
-      --secrets string   (required) The path to a JSON file containing OAuth2.0 Access and Refresh Tokens
+      --cache string   A path to a file location that will be used to cache OAuth2.0 Access and Refresh Tokens (default "$HOME/.youtube_oauth2_credentials")
+  -h, --help           help for start
 
 Global Flags:
-      --debug                  specifies whether Debug-level logs should be shown. This can be very noisy (be warned)
-      --dry-run                specifies whether YLS should be run in dry-run mode. This means YLS will make no changes, but will help evaluate changes that would be done
-      --oauth-config string    (required) the path to an associated OAuth configuration file (JSON) that is downloaded from Google for generation of the authorization token
-  -c, --stream-config string   the path to the file which specifies configuration for youtube stream schedules
+      --debug                   specifies whether Debug-level logs should be shown. This can be very noisy (be warned)
+      --dry-run                 specifies whether YLS should be run in dry-run mode. This means YLS will make no changes, but will help evaluate changes that would be done
+      --oauth-config string     (required) the path to an associated OAuth configuration file (JSON) that is downloaded from Google for generation of the authorization token
+      --streams-config string   (required) the path to the file which specifies configuration for youtube stream schedules
 ```
 
-> Note: the required flags (obviously) must be specified in each launch
+### Extra Considerations
+
+- The cache used for OAuth2.0 should be considered sensitive since it also contains refresh tokens in addition to access tokens. Access tokens are short-lived and would likely not be a huge threat, but refresh tokens tend to be longer-lived and can be exchanged for new access tokens
+- To configure streaming software using a non-default stream-key, you might need to manually access the YouTube livestream portal. The API does not differenciate between "Live Now" and "Events". As a result, we cannot programmatically gain access to "Live Now" ingestion information such as the stream-key.
 
 ## Maintainer / Author
 - Ben Sykes (ben.sykes@statcan.gc.ca)

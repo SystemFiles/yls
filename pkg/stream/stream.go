@@ -36,6 +36,10 @@ func (s *Stream) DryRun(val bool) *Stream {
 }
 
 func (s *Stream) Go() {
+	if s.service == nil {
+		logging.YLSLogger().Error("unable to create Live Broadcast resource. no service was available. make sure to chain `WithService(x)` before running `Go()`")
+	}
+
 	title := fmt.Sprintf("%s (%s)", s.TitlePrefix, time.Now().Format(time.RFC3339))
 	liveBroadcast := &youtube.LiveBroadcast{
 		Snippet: &youtube.LiveBroadcastSnippet{
@@ -95,6 +99,7 @@ func (s *Stream) Go() {
 			zap.String("scheduledStart", broadcastResp.Snippet.ScheduledStartTime),
 			zap.String("currentStatus", broadcastResp.Status.RecordingStatus),
 			zap.Strings("validStreamKeys", streamKeys),
+			zap.String("shareableLink", fmt.Sprintf("https://youtube.com/live/%s?feature=share", broadcastResp.Id)),
 		)
 	}
 }

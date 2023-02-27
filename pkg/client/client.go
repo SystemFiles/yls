@@ -30,8 +30,8 @@ func Get(ctx context.Context, secretsCache string, config *oauth2.Config) *http.
 
 func getTokenFromWeb(ctx context.Context, config *oauth2.Config) *oauth2.Token {
 	authURL := config.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
-	fmt.Printf("Go to the following link in your browser then type the "+
-		"authorization code: \n%s\n", authURL)
+	fmt.Printf("Go to: \n%s\n", authURL)
+	fmt.Println("Enter Authorization Code: ")
 
 	var code string
 	if _, err := fmt.Scan(&code); err != nil {

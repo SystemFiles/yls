@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"path"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
@@ -16,7 +17,7 @@ var YLSLogger = logging.YLSLogger
 
 // top-level CLI vars
 var oauthConfigFile string
-var streamConfigFile string
+var secretsCache string
 var dryRun bool
 var debugMode bool
 
@@ -32,8 +33,13 @@ func init() {
 	cobra.OnFinalize(cleanupLogging)
 	cobra.EnableCaseInsensitive = true
 
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		YLSLogger().Fatal("unable to determine user home directory for config access")
+	}
+
+	rootCmd.PersistentFlags().StringVar(&secretsCache, "secrets-cache", path.Join(homeDir, ".youtube_oauth2_credentials"), "A path to a file location that will be used to cache OAuth2.0 Access and Refresh Tokens")
 	rootCmd.PersistentFlags().StringVar(&oauthConfigFile, "oauth-config", "", "(required) the path to an associated OAuth configuration file (JSON) that is downloaded from Google for generation of the authorization token")
-	rootCmd.PersistentFlags().StringVarP(&streamConfigFile, "stream-config", "c", "", "the path to the file which specifies configuration for youtube stream schedules")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "specifies whether YLS should be run in dry-run mode. This means YLS will make no changes, but will help evaluate changes that would be done")
 	rootCmd.PersistentFlags().BoolVar(&debugMode, "debug", false, "specifies whether Debug-level logs should be shown. This can be very noisy (be warned)")
 
@@ -42,18 +48,6 @@ func init() {
 }
 
 func initConfig() {
-	if streamConfigFile != "" {
-		viper.SetConfigFile(streamConfigFile)
-	} else {
-		homeDir, err := os.UserHomeDir()
-		cobra.CheckErr(err)
-
-		viper.AddConfigPath(homeDir)
-		viper.SetConfigName(".yls")
-		viper.SetConfigType("yaml")
-		viper.SafeWriteConfig()
-	}
-
 	if debugMode {
 		YLSLogger(zap.DebugLevel).Debug("debug-mode has been enabled") // init YLSLogger with debug logging/dev
 	}

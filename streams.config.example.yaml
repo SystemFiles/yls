@@ -1,4 +1,3 @@
-oauthConfigPath: "/path/to/oauth_config.json"
 streams:
   - name: Example Service
     titlePrefix: Example Service
