@@ -17,7 +17,7 @@ import (
 	"sykesdev.ca/yls/pkg/stream"
 )
 
-var secretsFile string
+var streamConfigFile string
 
 var startCmd = &cobra.Command{
 	Use:   "start",
@@ -40,7 +40,6 @@ var startCmd = &cobra.Command{
 		if err := viper.Unmarshal(&streams); err != nil {
 			YLSLogger().Fatal("viper was unable to unmarshal yaml config from file", zap.Error(err))
 		}
-
 		YLSLogger().Debug("streams", zap.Any("value", streams.Items))
 
 		if len(streams.Items) == 0 {
@@ -79,7 +78,7 @@ func initYoutubeService(ctx context.Context) (*youtube.Service, error) {
 		YLSLogger().Fatal("Unable to parse client secret file to config", zap.Error(err))
 	}
 
-	client := client.Get(ctx, secretsFile, config)
+	client := client.Get(ctx, secretsCache, config)
 	svc, err := youtube.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		return nil, err
@@ -89,8 +88,19 @@ func initYoutubeService(ctx context.Context) (*youtube.Service, error) {
 }
 
 func init() {
-	startCmd.Flags().StringVar(&secretsFile, "secrets", "", "(required) The path to a JSON file containing OAuth2.0 Access and Refresh Tokens")
-	startCmd.MarkFlagRequired("secrets")
+	if streamConfigFile != "" {
+		viper.SetConfigFile(streamConfigFile)
+	} else {
+		homeDir, err := os.UserHomeDir()
+		cobra.CheckErr(err)
+
+		viper.AddConfigPath(homeDir)
+		viper.SetConfigName(".yls")
+		viper.SetConfigType("yaml")
+		viper.SafeWriteConfig()
+	}
+
+	startCmd.Flags().StringVarP(&streamConfigFile, "input", "i", "", "the path to the file which specifies configuration for youtube stream schedules (default '$HOME/.yls.yaml')")
 
 	rootCmd.AddCommand(startCmd)
 }
