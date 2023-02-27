@@ -3,7 +3,7 @@ streams:
   - name: Example Service
     titlePrefix: Example Service
     description: "Example Description"
-    schedule: "30 10 * * 7" # every sunday at 10:30
+    schedule: "30 10 * * 0" # every sunday at 10:30
     delaySeconds: 1800 # delay for 30minutes
     privacyLevel: "unlisted"
 

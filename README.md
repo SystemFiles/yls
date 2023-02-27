@@ -49,7 +49,7 @@ streams:
   - name: "Friendly name for logs and behind-the-scenes stuff"
     titlePrefix: "Title of Stream Broadcast"
     description: "example description for stream broadcast"
-    schedule: "* * * * *"
+    schedule: "0 0 * * 0"
     delaySeconds: 1800 # this is the delay from when the stream is scheduled to be created and when it is set to start accepting data
     privacyLevel: "public" # can be one of 'private', 'public', 'unlisted'
 ```
