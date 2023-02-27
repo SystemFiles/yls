@@ -1,0 +1,11 @@
+version: '3'
+
+tasks:
+  go:build:
+    cmds:
+      - go build -o ./bin/yls -v
+  go:run:
+    deps:
+      - go:build
+    cmds:
+      - ./bin/yls start
