@@ -1,0 +1,5 @@
+gitlab_urls:
+  api: https://gitlab.sykesdev.ca/api/v4/
+  download: https://gitlab.sykesdev.ca
+  skip_tls_verify: false
+
