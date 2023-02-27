@@ -72,14 +72,14 @@ Usage:
   yls start [flags]
 
 Flags:
-      --cache string   A path to a file location that will be used to cache OAuth2.0 Access and Refresh Tokens (default "$HOME/.youtube_oauth2_credentials")
   -h, --help           help for start
+  -i, --input string   the path to the file which specifies configuration for youtube stream schedules (default '$HOME/.yls.yaml')
 
 Global Flags:
-      --debug                   specifies whether Debug-level logs should be shown. This can be very noisy (be warned)
-      --dry-run                 specifies whether YLS should be run in dry-run mode. This means YLS will make no changes, but will help evaluate changes that would be done
-      --oauth-config string     (required) the path to an associated OAuth configuration file (JSON) that is downloaded from Google for generation of the authorization token
-      --streams-config string   (required) the path to the file which specifies configuration for youtube stream schedules
+      --debug                  specifies whether Debug-level logs should be shown. This can be very noisy (be warned)
+      --dry-run                specifies whether YLS should be run in dry-run mode. This means YLS will make no changes, but will help evaluate changes that would be done
+      --oauth-config string    (required) the path to an associated OAuth configuration file (JSON) that is downloaded from Google for generation of the authorization token
+      --secrets-cache string   A path to a file location that will be used to cache OAuth2.0 Access and Refresh Tokens (default "/Users/bensykes/.youtube_oauth2_credentials") 
 ```
 
 ### Extra Considerations
