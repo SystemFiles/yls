@@ -17,6 +17,7 @@ import (
 	"sykesdev.ca/yls/pkg/stream"
 )
 
+var runNow bool
 var streamConfigFile string
 
 var startCmd = &cobra.Command{
@@ -48,6 +49,15 @@ var startCmd = &cobra.Command{
 
 		c := cron.New()
 		defer c.Stop()
+
+		if runNow {
+			for _, s := range streams.Items {
+				s.WithService(svc).DryRun(dryRun).Go()
+			}
+
+			YLSLogger().Info("completed jobs for all configured streams")
+			return
+		}
 
 		for _, s := range streams.Items {
 			_, err := c.AddFunc(s.Schedule, s.WithService(svc).DryRun(dryRun).Go)
@@ -101,6 +111,7 @@ func init() {
 	}
 
 	startCmd.Flags().StringVarP(&streamConfigFile, "input", "i", "", "the path to the file which specifies configuration for youtube stream schedules (default '$HOME/.yls.yaml')")
+	startCmd.Flags().BoolVarP(&runNow, "now", "n", false, "specifies whether to execute all configured stream jobs immediately instead of scheduling them for a future date/time. Note that any future jobs will NOT be scheduled when this flag is specified.")
 
 	rootCmd.AddCommand(startCmd)
 }
