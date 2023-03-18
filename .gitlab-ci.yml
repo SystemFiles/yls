@@ -1,6 +1,7 @@
 include:
   - project: gitlab-ci/kaniko-publish
     file: '.kaniko-build-push.gitlab-ci.yaml'
+    ref: v0.x
 
 variables:
   CI_REGISTRY_USER: sykeben
@@ -11,10 +12,11 @@ stages:
   - release
 
 release-binaries:
-  stage: release
+  stage: push
   image:
     name: goreleaser/goreleaser
     entrypoint: ['']
+  when: manual
   only:
     - tags
   variables:
