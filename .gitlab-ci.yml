@@ -1,7 +1,16 @@
+include:
+  - project: gitlab-ci/kaniko-publish
+    file: '.kaniko-build-push.gitlab-ci.yaml'
+
+variables:
+  CI_REGISTRY_USER: sykeben
+
 stages:
+  - build
+  - push
   - release
 
-release:
+release-binaries:
   stage: release
   image:
     name: goreleaser/goreleaser

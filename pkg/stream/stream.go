@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/api/youtube/v3"
 	"sykesdev.ca/yls/pkg/logging"
+	"sykesdev.ca/yls/pkg/pub"
 )
 
 type StreamList struct {
@@ -21,8 +22,9 @@ type Stream struct {
 	StartDelaySeconds uint16 `mapstructure:"delaySeconds"`
 	PrivacyLevel      string `mapstructure:"privacyLevel"`
 
-	service *youtube.Service `mapstructure:"-"`
 	dryRun  bool             `mapstructure:"-"`
+	service *youtube.Service `mapstructure:"-"`
+	publisher pub.Publisher  `mapstructure:"-"`
 }
 
 func (s *Stream) WithService(y *youtube.Service) *Stream {
@@ -32,6 +34,15 @@ func (s *Stream) WithService(y *youtube.Service) *Stream {
 
 func (s *Stream) DryRun(val bool) *Stream {
 	s.dryRun = val
+	return s
+}
+
+func (s *Stream) WithPublisher(cmd *pub.PublishOptions) *Stream {
+	p := pub.NewWordpressPublisher()
+	p.Configure(cmd)
+	logging.YLSLogger().Debug("configured publisher", zap.Any("publisher", s.publisher))
+
+	s.publisher = p
 	return s
 }
 
@@ -101,6 +112,12 @@ func (s *Stream) Go() {
 			zap.Strings("validStreamKeys", streamKeys),
 			zap.String("shareableLink", fmt.Sprintf("https://youtube.com/live/%s?feature=share", broadcastResp.Id)),
 		)
+
+		if s.publisher != nil {
+			if err := s.publisher.Publish(broadcastResp); err != nil {
+				logging.YLSLogger().Fatal("unable to publish Youtube Live Broadcast to publish target", zap.Error(err))
+			}
+		}
 	}
 }
 

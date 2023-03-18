@@ -1,4 +1,3 @@
-# Build the manager binary
 FROM golang:1.19 as builder
 ARG TARGETOS
 ARG TARGETARCH
@@ -25,7 +24,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o yl
 # use scratch to limit attack surface-area
 FROM scratch
 WORKDIR /
-COPY --from=builder /workspace/manager .
+COPY --from=builder /workspace/yls .
 USER 65532:65532
 
 ENTRYPOINT ["/yls"]
