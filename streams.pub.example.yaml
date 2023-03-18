@@ -1,0 +1,21 @@
+apiBaseURL: https://example.ca/wp-json/wp/v2
+username: "bob.smith"
+pageTemplate: |
+  <hr />
+
+  If you would like to attend our live service from home, we encourage you to join us via our live streamed service available below.
+
+  <hr />
+  <br />
+  <br />
+
+  &nbsp;
+
+  <div style="display:block;margin: 0 auto;text-align: center;">
+  <iframe src="{{ .StreamURLEmbed }}" width="944" height="531" frameborder="0" allowfullscreen="allowfullscreen"></iframe>
+  </div>
+
+  [box type="info"] If you experience issues trying to watch the service (stream) through our website, please click <a href="{{ .StreamURLShare }}" target="_blank" rel="noopener noreferrer">here</a> to go directly to YouTube to watch the live stream. Or copy this link and paste into your address bar {{ .StreamURLShare }} [/box]
+
+  <br />
+  <br />
