@@ -16,7 +16,7 @@ type StreamList struct {
 
 type Stream struct {
 	Name              string `mapstructure:"name"`
-	TitlePrefix       string `mapstructure:"titlePrefix"`
+	Title       string `mapstructure:"title"`
 	Description       string `mapstructure:"description"`
 	Schedule          string `mapstructure:"schedule"`
 	StartDelaySeconds uint16 `mapstructure:"delaySeconds"`
@@ -51,10 +51,9 @@ func (s *Stream) Go() {
 		logging.YLSLogger().Error("unable to create Live Broadcast resource. no service was available. make sure to chain `WithService(x)` before running `Go()`")
 	}
 
-	title := fmt.Sprintf("%s (%s)", s.TitlePrefix, time.Now().Format(time.RFC3339))
 	liveBroadcast := &youtube.LiveBroadcast{
 		Snippet: &youtube.LiveBroadcastSnippet{
-			Title:              title,
+			Title:              s.Title,
 			Description:        s.Description,
 			ScheduledStartTime: time.Now().Local().Add(time.Duration(s.StartDelaySeconds) * time.Second).Format(time.RFC3339),
 		},
