@@ -126,11 +126,11 @@ func init() {
 	startCmd.Flags().StringVarP(&streamConfigFile, "input", "i", "", "the path to the file which specifies configuration for youtube stream schedules (default '$HOME/.yls.yaml')")
 	startCmd.Flags().BoolVarP(&runNow, "now", "n", false, "specifies whether to execute all configured stream jobs immediately instead of scheduling them for a future date/time. Note that any future jobs will NOT be scheduled when this flag is specified.")
 	startCmd.Flags().BoolVarP(&publish, "publish", "p", false, "specifies whether to publish the stream using a configured publisher (ie: wordpress)")
-	startCmd.Flags().StringVar(&publishOptions.WPConfig, "wp-config", os.Getenv("YLS_WP_CONFIG"), "the path to a file containing configuration (in YAML) for a wordpress publisher")
+	startCmd.Flags().StringVar(&publishOptions.WPConfig, "wp-config", os.Getenv("YLS_WP_CONFIG"), "(optional) the path to a file containing configuration (in YAML) for a wordpress publisher")
 	startCmd.Flags().StringVar(&publishOptions.WPBaseURL, "wp-base-url", os.Getenv("YLS_WP_BASE_URL"), "the base URL for a the wordpress v2 API")
 	startCmd.Flags().StringVar(&publishOptions.WPUsername, "wp-username", os.Getenv("YLS_WP_USERNAME"), "the username for the user or service account to use for wordpress publishing")
 	startCmd.Flags().StringVar(&publishOptions.WPAppToken, "wp-app-token", os.Getenv("YLS_WP_APP_TOKEN"), "the wordpress App token to use to authenticate the identified wordpress user")
-	startCmd.Flags().IntVar(&publishOptions.WPExistingPageId, "wp-page-id", 0, "an optional page ID for a wordpress page to publish changes to (if not specified, a page will be created)")
+	startCmd.Flags().IntVar(&publishOptions.WPExistingPageId, "wp-page-id", 0, "(optional) a page ID for a wordpress page to publish changes to (if not specified, a page will be created)")
 	startCmd.Flags().StringVar(&publishOptions.WPPageTemplate, "wp-page-template", os.Getenv("YLS_WP_PAGE_TEMPLATE"), "a string that contains a gotemplate-compatible HTLM page template to use to construct wordpress page content")
 
 	rootCmd.AddCommand(startCmd)

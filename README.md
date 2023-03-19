@@ -14,24 +14,24 @@ If you'd like to contribute some code or have a suggestion/issue, please check t
 
 ## Usage
 
-1. Create a new project in the Google Developers Console:
-  - Go to the Google Developers Console.
-  - Create a new project by clicking on the "Create Project" button in the top right corner.
-  - Enter a name for your project and click on the "Create" button.
+1. Create a new project in the [Google Developers Console](https://console.cloud.google.com/):
+  - Go to the [Google Developers Console](https://console.cloud.google.com/).
+  - Create a new project by clicking on the `Create Project` button in the top right corner.
+  - Enter a name for your project and click on the `Create` button.
 
 2. Enable the YouTube Data API v3:
-  - In the Google Developers Console, select your project.
-  - Click on the "Enable APIs and Services" button.
-  - Search for "YouTube Data API v3" and click on it.
-  - Click on the "Enable" button.
+  - In the [Google Developers Console](https://console.cloud.google.com/), select your project.
+  - Click on the `Enable APIs and Services` button.
+  - Search for `YouTube Data API v3` and click on it.
+  - Click on the `Enable` button.
 
 3. Create OAuth2.0 credentials:
-  - In the Google Developers Console, select your project.
-  - Click on the "Create Credentials" button and select "OAuth client ID".
-  - Select "Desktop App" as the application type.
-  - Enter a name for your OAuth client ID and click on the "Create" button.
+  - In the [Google Developers Console](https://console.cloud.google.com/), select your project.
+  - Click on the `Create Credentials` button and select `OAuth client ID`.
+  - Select `Desktop App` as the application type.
+  - Enter a name for your OAuth client ID and click on the `Create` button.
 
-4. Click on the "Download" button to download the client secret JSON file.
+4. Click on the `Download` button to download the client secret JSON file.
 > Note: Make sure to update the `redirect_uris` field in the downloaded file to contain `urn:ietf:wg:oauth:2.0:oob`
 
 Now you should be ready to start configuring `Streams` for use in the application.
@@ -45,7 +45,7 @@ Your file should follow be configured as shown:
 ```yaml
 streams:
   - name: "Friendly name for logs and behind-the-scenes stuff"
-    titlePrefix: "Title of Stream Broadcast"
+    title: "Title of Stream Broadcast"
     description: "example description for stream broadcast"
     schedule: "0 0 * * 0"
     delaySeconds: 1800 # this is the delay from when the stream is scheduled to be created and when it is set to start accepting data
@@ -65,22 +65,31 @@ You will need a computer to run this on that can remain on 24/7 as this is a dae
 
 The app will manage schedules for you once configured and will respond to configuration changes in real-time. This means if you need to make a change, you needn't restart the daemon.
 
-### Usage
+### Publishers
 
-```bash
-Usage:
-  yls start [flags]
+As of `v0.2.x`, YLS now supports publishers. While more publishers can easily be extended through the `Publisher` interface, currently the following publishers are supported:
 
-Flags:
-  -h, --help           help for start
-  -i, --input string   the path to the file which specifies configuration for youtube stream schedules (default '$HOME/.yls.yaml')
+- Wordpress
 
-Global Flags:
-      --debug                  specifies whether Debug-level logs should be shown. This can be very noisy (be warned)
-      --dry-run                specifies whether YLS should be run in dry-run mode. This means YLS will make no changes, but will help evaluate changes that would be done
-      --oauth-config string    (required) the path to an associated OAuth configuration file (JSON) that is downloaded from Google for generation of the authorization token
-      --secrets-cache string   A path to a file location that will be used to cache OAuth2.0 Access and Refresh Tokens (default "/Users/bensykes/.youtube_oauth2_credentials") 
-```
+## Configuring a Publisher
+
+Publishers can be configured via config files and/or through commandline arguments and/or environment variables.
+
+For the wordpress publisher an example configuration may include the following options:
+
+| Name | env variable | Description | Default | Example |
+| ---- | ------------ | ----------- | ------- | -------- |
+|publish| `N/A` |Specifies whether livestreams as part of this schedule should be published using a publisher|`false`|`false`|
+|wp-config| `YLS_WP_CONFIG` |the path to a file containing configuration (in YAML) for a wordpress publisher|`""`|`"/config/wp-pub.conf.yaml"`|
+|wp-base-url| `YLS_WP_BASE_URL` |the base URL for a the wordpress v2 API|`""`|`"https://wordpress.example.ca/wp-json/wp/v2"`|
+|wp-username| `YLS_WP_USERNAME` |the username for the user or service account to use for wordpress publishing|`""`|`"ben.sykes"`|
+|wp-app-token| `YLS_WP_APP_TOKEN` |the wordpress App token to use to authenticate the identified wordpress user|`""`|`"DadH6 aiUW GIsY 62Yt"`|
+|wp-page-id|`N/A`|(optional) a page ID for a wordpress page to publish changes to (if not specified, a page will be created)|`0`|`55555`|
+|wp-page-template|`YLS_WP_PAGE_TEMPLATE`|a string that contains a gotemplate-compatible HTLM page template to use to construct wordpress page content|`""`|`"<h1>Live stream</h1><p>Available at: {{ .StreamURLShare }}</p>"`|
+
+> As more publishers are added, options will be extended to configure specific traits of each of those implementations
+
+It is worth noting that options above (for publishers) that are not required or optional are only not required **if** `publish` is `false`.
 
 ### Extra Considerations
 

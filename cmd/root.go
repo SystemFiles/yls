@@ -39,7 +39,7 @@ func init() {
 	}
 
 	rootCmd.PersistentFlags().StringVar(&secretsCache, "secrets-cache", path.Join(homeDir, ".youtube_oauth2_credentials"), "A path to a file location that will be used to cache OAuth2.0 Access and Refresh Tokens")
-	rootCmd.PersistentFlags().StringVar(&oauthConfigFile, "oauth-config", "", "(required) the path to an associated OAuth configuration file (JSON) that is downloaded from Google for generation of the authorization token")
+	rootCmd.PersistentFlags().StringVar(&oauthConfigFile, "oauth-config", os.Getenv("YLS_OAUTH2_CONFIG"), "(required) the path to an associated OAuth configuration file (JSON) that is downloaded from Google for generation of the authorization token")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "specifies whether YLS should be run in dry-run mode. This means YLS will make no changes, but will help evaluate changes that would be done")
 	rootCmd.PersistentFlags().BoolVar(&debugMode, "debug", false, "specifies whether Debug-level logs should be shown. This can be very noisy (be warned)")
 
