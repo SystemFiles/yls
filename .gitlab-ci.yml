@@ -9,14 +9,12 @@ variables:
 stages:
   - build
   - push
-  - release
 
 release-binaries:
   stage: push
   image:
     name: goreleaser/goreleaser
     entrypoint: ['']
-  when: manual
   only:
     - tags
   variables:
