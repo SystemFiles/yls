@@ -1,5 +1,5 @@
 include:
-  - project: gitlab-ci/kaniko-publish
+  - project: ci/docker-ci
     file: '.kaniko-build-push.gitlab-ci.yaml'
     ref: v0.x
 
