@@ -12,6 +12,16 @@ This project is licensed under [Apache2.0](/LICENSE).
 
 If you'd like to contribute some code or have a suggestion/issue, please check the [CONTRIBUTING](/CONTRIBUTING.md) guidelines.
 
+## Installation
+
+### Binary
+
+Download the binary from the [releases page](https://gitlab.sykesdev.ca/standalone-projects/yls/-/releases)
+
+### Docker
+
+You can find all related docker images in [Docker Hub](https://hub.docker.com/repository/docker/sykeben/yls/general)
+
 ## Usage
 
 1. Create a new project in the [Google Developers Console](https://console.cloud.google.com/):
