@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -27,8 +28,7 @@ var publish bool
 var publishOptions = &pub.PublishOptions{}
 
 var startCmd = &cobra.Command{
-	Use:   "start",
-	Short: "starts an interactive instance of YLS",
+	Use: "start",
 	Run: func(cmd *cobra.Command, args []string) {
 		quit := make(chan os.Signal, 1)
 		signal.Notify(quit, syscall.SIGTERM)
@@ -89,22 +89,42 @@ var startCmd = &cobra.Command{
 }
 
 func initYoutubeService(ctx context.Context) (*youtube.Service, error) {
-	b, err := os.ReadFile(oauthConfigFile)
+	b, err := os.ReadFile(authConfig)
 	if err != nil {
 		YLSLogger().Fatal("Unable to read oauth configuration from file", zap.Error(err))
 	}
 
-	// If modifying these scopes, delete your previously saved credentials
-	// at ~/.credentials/youtube-go-quickstart.json
-	config, err := google.ConfigFromJSON(b, youtube.YoutubeScope)
-	if err != nil {
-		YLSLogger().Fatal("Unable to parse client secret file to config", zap.Error(err))
-	}
+	var c *http.Client
+	var svc *youtube.Service
+	if headless {
+		// Set the subject ID to impersonate the YouTube channel or user account
+		subject := "UCuw0w1pVx0K3bgyT9mBrGaw"
 
-	client := client.Get(ctx, secretsCache, config)
-	svc, err := youtube.NewService(ctx, option.WithHTTPClient(client))
-	if err != nil {
-		return nil, err
+		ts, err := client.GetOauth2TokenSource(ctx, subject, b)
+		if err != nil {
+			YLSLogger().Fatal("IODJAIOWDJAOJDOIWJAD", zap.Error(err))
+		}
+
+		svc, err = youtube.NewService(ctx, option.WithTokenSource(ts), option.WithAudiences("https://oauth2.googleapis.com/token"))
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = svc.Channels.List(nil).Do(nil)
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+		// If modifying these scopes, delete your previously saved credentials
+		// at ~/.credentials/youtube-go-quickstart.json
+		config, err := google.ConfigFromJSON(b, youtube.YoutubeScope)
+		if err != nil {
+			YLSLogger().Fatal("Unable to parse client secret file to config", zap.Error(err))
+		}
+
+		c = client.Get(ctx, secretsCache, config)
+		YLSLogger().Info("poop", zap.Any("client", c))
 	}
 
 	return svc, nil

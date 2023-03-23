@@ -16,11 +16,15 @@ import (
 var YLSLogger = logging.YLSLogger
 
 // top-level CLI vars
-var oauthConfigFile string
-var secretsCache string
-var dryRun bool
-var debugMode bool
+var (
+	authConfig   string
+	secretsCache string
+	headless     bool
+	dryRun       bool
+	debugMode    bool
+)
 
+// # root command
 var (
 	rootCmd = &cobra.Command{
 		Use:   "yls",
@@ -39,7 +43,8 @@ func init() {
 	}
 
 	rootCmd.PersistentFlags().StringVar(&secretsCache, "secrets-cache", path.Join(homeDir, ".youtube_oauth2_credentials"), "A path to a file location that will be used to cache OAuth2.0 Access and Refresh Tokens")
-	rootCmd.PersistentFlags().StringVar(&oauthConfigFile, "oauth-config", os.Getenv("YLS_OAUTH2_CONFIG"), "(required) the path to an associated OAuth configuration file (JSON) that is downloaded from Google for generation of the authorization token")
+	rootCmd.PersistentFlags().StringVar(&authConfig, "auth-config", os.Getenv("YLS_AUTH_CONFIG"), "(required) the path to a Google OAuth2 configuration file (JSON) or a Private Key file (JSON) that contains information for authentication with Google APIs")
+	rootCmd.PersistentFlags().BoolVar(&headless, "headless", os.Getenv("YLS_HEADLESS") != "" && os.Getenv("YLS_HEADLESS") != "false", "specifies whether YLS should use headless client protocols to authenticate a youtube service client")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "specifies whether YLS should be run in dry-run mode. This means YLS will make no changes, but will help evaluate changes that would be done")
 	rootCmd.PersistentFlags().BoolVar(&debugMode, "debug", false, "specifies whether Debug-level logs should be shown. This can be very noisy (be warned)")
 
