@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"os"
 	"os/signal"
@@ -15,6 +14,7 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	"google.golang.org/api/youtube/v3"
+	"gopkg.in/yaml.v3"
 	"sykesdev.ca/yls/pkg/client"
 	"sykesdev.ca/yls/pkg/pub"
 	"sykesdev.ca/yls/pkg/stream"
@@ -91,7 +91,7 @@ func getStreamsFromFile() (*stream.StreamList, error) {
 	}
 
 	var streams stream.StreamList
-	if err := json.Unmarshal(b, &streams); err != nil {
+	if err := yaml.Unmarshal(b, &streams); err != nil {
 		return nil, err
 	}
 	YLSLogger().Debug("got streams from config file", zap.Any("value", streams.Items))
