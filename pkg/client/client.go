@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -35,12 +34,12 @@ func getTokenFromWeb(ctx context.Context, config *oauth2.Config) *oauth2.Token {
 
 	var code string
 	if _, err := fmt.Scan(&code); err != nil {
-		log.Fatalf("Unable to read authorization code %v", err)
+		logging.YLSLogger().Fatal("unable to read authorization code from stdin", zap.Error(err))
 	}
 
 	tok, err := config.Exchange(ctx, code)
 	if err != nil {
-		log.Fatalf("Unable to retrieve token from web %v", err)
+		logging.YLSLogger().Fatal("unable to retrieve token from web", zap.Error(err))
 	}
 	return tok
 }
@@ -50,19 +49,20 @@ func tokenFromFile(file string) (*oauth2.Token, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
+
 	t := &oauth2.Token{}
 	err = json.NewDecoder(f).Decode(t)
-
-	defer f.Close()
 	return t, err
 }
 
 func saveToken(file string, token *oauth2.Token) {
-	fmt.Printf("Saving credential file to: %s\n", file)
+	logging.YLSLogger().Debug("saving credentials to secrets cache", zap.String("cache_location", file))
 	f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		log.Fatalf("Unable to cache oauth token: %v", err)
+		logging.YLSLogger().Warn("unable to cache oauth token", zap.Error(err))
 	}
 	defer f.Close()
+
 	json.NewEncoder(f).Encode(token)
 }

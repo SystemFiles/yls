@@ -123,6 +123,7 @@ func (w *WordPressPublisher) Publish(b *youtube.LiveBroadcast) error {
 
 	if w.ExistingPageId != 0 {
 		logging.YLSLogger().Debug("updating existing page with new Stream",
+			zap.String("content", pageContent),
 			zap.Int("existingPageID", w.ExistingPageId),
 		)
 		_, _, _, err := c.Pages().Update(w.ExistingPageId, &wordpress.Page{
@@ -139,7 +140,7 @@ func (w *WordPressPublisher) Publish(b *youtube.LiveBroadcast) error {
 	)
 	_, _, _, err = c.Pages().Create(&wordpress.Page{
 		Title: wordpress.Title{
-			Raw:  b.Snippet.Title,
+			Raw: b.Snippet.Title,
 		},
 		Content: wordpress.Content{
 			Raw: pageContent,
@@ -161,7 +162,7 @@ func (w *WordPressPublisher) Configure(cmd *PublishOptions) {
 	if cmd.WPBaseURL != "" {
 		p.BaseURL = cmd.WPBaseURL
 	}
-	
+
 	if cmd.WPUsername != "" {
 		p.Username = cmd.WPUsername
 	}

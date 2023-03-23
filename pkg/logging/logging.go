@@ -8,16 +8,25 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+type LogPath struct {
+	Value string
+}
+
 var (
 	instance *zap.Logger
 	once     sync.Once
 )
 
-func YLSLogger(level ...zapcore.Level) *zap.Logger {
+func YLSLogger(opts ...interface{}) *zap.Logger {
 	once.Do(func() {
 		zapConfig := zap.NewProductionConfig()
-		if len(level) > 0 {
-			zapConfig.Level.SetLevel(level[0])
+		for _, opt := range opts {
+			if val, ok := opt.(zapcore.Level); ok {
+				zapConfig.Level.SetLevel(val)
+			}
+			if val, ok := opt.(LogPath); ok {
+				zapConfig.OutputPaths = append(zapConfig.OutputPaths, val.Value)
+			}
 		}
 
 		logger, err := zapConfig.Build()

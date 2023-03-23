@@ -4,22 +4,19 @@ import (
 	"os"
 	"path"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
-
 	"sykesdev.ca/yls/pkg/logging"
 )
 
-// alias logger
-var YLSLogger = logging.YLSLogger
-
 // top-level CLI vars
-var oauthConfigFile string
-var secretsCache string
-var dryRun bool
-var debugMode bool
+var (
+	oauthConfigFile string
+	secretsCache    string
+	loggingOut      string
+	dryRun          bool
+	debugMode       bool
+)
 
 var (
 	rootCmd = &cobra.Command{
@@ -29,7 +26,7 @@ var (
 )
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(initLogging)
 	cobra.OnFinalize(cleanupLogging)
 	cobra.EnableCaseInsensitive = true
 
@@ -39,28 +36,19 @@ func init() {
 	}
 
 	rootCmd.PersistentFlags().StringVar(&secretsCache, "secrets-cache", path.Join(homeDir, ".youtube_oauth2_credentials"), "A path to a file location that will be used to cache OAuth2.0 Access and Refresh Tokens")
-	rootCmd.PersistentFlags().StringVar(&oauthConfigFile, "oauth-config", os.Getenv("YLS_OAUTH2_CONFIG"), "(required) the path to an associated OAuth configuration file (JSON) that is downloaded from Google for generation of the authorization token")
+	rootCmd.PersistentFlags().StringVar(&oauthConfigFile, "oauth-config", os.Getenv("YLS_OAUTH2_CONFIG"), "(required) the path to an ")
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "specifies whether YLS should be run in dry-run mode. This means YLS will make no changes, but will help evaluate changes that would be done")
 	rootCmd.PersistentFlags().BoolVar(&debugMode, "debug", false, "specifies whether Debug-level logs should be shown. This can be very noisy (be warned)")
-
-	// required flags
-	rootCmd.MarkPersistentFlagRequired("oauth-config")
+	rootCmd.PersistentFlags().StringVarP(&loggingOut, "out", "o", os.Getenv("YLS_LOGGING_OUTPUT"), "specifies a file path to write logs to")
 }
 
-func initConfig() {
+func initLogging() {
+	if loggingOut != "" {
+		YLSLogger(logging.LogPath{Value: loggingOut}).Info("logging to a file has been configured", zap.String("file", loggingOut))
+	}
 	if debugMode {
-		YLSLogger(zap.DebugLevel).Debug("debug-mode has been enabled") // init YLSLogger with debug logging/dev
+		YLSLogger(zap.DebugLevel).Debug("debug-mode has been enabled")
 	}
-
-	viper.AutomaticEnv()
-	if err := viper.ReadInConfig(); err == nil {
-		YLSLogger().Debug("YLS configuration loaded")
-	}
-
-	viper.WatchConfig()
-	viper.OnConfigChange(func(e fsnotify.Event) {
-		YLSLogger().Info("YLS configuration changed", zap.String("event", e.Name))
-	})
 }
 
 func cleanupLogging() {
