@@ -2,13 +2,15 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"os"
 	"os/signal"
+	"path"
 	"syscall"
 
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -40,19 +42,10 @@ var startCmd = &cobra.Command{
 		}
 		YLSLogger().Info("Youtube service has been initialized successfully")
 
-		// get the streams from config
-		var streams stream.StreamList
-		if err := viper.Unmarshal(&streams); err != nil {
-			YLSLogger().Fatal("viper was unable to unmarshal yaml config from file", zap.Error(err))
+		streams, err := getStreamsFromFile()
+		if err != nil {
+			YLSLogger().Fatal("unable to get streams from input file", zap.String("file", streamConfigFile), zap.Error(err))
 		}
-		YLSLogger().Debug("streams", zap.Any("value", streams.Items))
-
-		if len(streams.Items) == 0 {
-			YLSLogger().Fatal("must specify at least one stream configuration to proceed")
-		}
-
-		c := cron.New()
-		defer c.Stop()
 
 		if runNow {
 			for _, s := range streams.Items {
@@ -63,10 +56,11 @@ var startCmd = &cobra.Command{
 				}
 			}
 
-			YLSLogger().Info("completed jobs for all configured streams")
+			YLSLogger().Info("completed jobs for all configured streams", zap.Int("jobCount", len(streams.Items)))
 			return
 		}
 
+		c := cron.New()
 		for _, s := range streams.Items {
 			var err error
 			if publish {
@@ -80,15 +74,39 @@ var startCmd = &cobra.Command{
 			YLSLogger().Info("added new job to scheduler", zap.String("jobName", s.Name), zap.String("jobSchedule", s.Schedule))
 		}
 
-		YLSLogger().Info("starting cron scheduler")
+		YLSLogger().Info("starting scheduler")
 		c.Start()
 
 		sig := <-quit
 		YLSLogger().Info("caught an exit signal. shutting down gracefully", zap.String("signal", sig.String()))
+		stopCtx := c.Stop()
+		<-stopCtx.Done()
 	},
 }
 
+func getStreamsFromFile() (*stream.StreamList, error) {
+	b, err := os.ReadFile(streamConfigFile)
+	if err != nil {
+		return nil, err
+	}
+
+	var streams stream.StreamList
+	if err := json.Unmarshal(b, &streams); err != nil {
+		return nil, err
+	}
+	YLSLogger().Debug("got streams from config file", zap.Any("value", streams.Items))
+
+	if len(streams.Items) == 0 {
+		return nil, errors.New("must specify at least one stream configuration to proceed")
+	}
+
+	return &streams, nil
+}
+
 func initYoutubeService(ctx context.Context) (*youtube.Service, error) {
+	if oauthConfigFile == "" {
+		return nil, errors.New("oauth configuration file is required. specify --oauth-config or use the environment variable YLS_OAUTH_CONFIG")
+	}
 	b, err := os.ReadFile(oauthConfigFile)
 	if err != nil {
 		YLSLogger().Fatal("Unable to read oauth configuration from file", zap.Error(err))
@@ -111,19 +129,9 @@ func initYoutubeService(ctx context.Context) (*youtube.Service, error) {
 }
 
 func init() {
-	if streamConfigFile != "" {
-		viper.SetConfigFile(streamConfigFile)
-	} else {
-		homeDir, err := os.UserHomeDir()
-		cobra.CheckErr(err)
+	h, _ := os.UserHomeDir()
 
-		viper.AddConfigPath(homeDir)
-		viper.SetConfigName(".yls")
-		viper.SetConfigType("yaml")
-		viper.SafeWriteConfig()
-	}
-
-	startCmd.Flags().StringVarP(&streamConfigFile, "input", "i", "", "the path to the file which specifies configuration for youtube stream schedules (default '$HOME/.yls.yaml')")
+	startCmd.Flags().StringVarP(&streamConfigFile, "input", "i", path.Join(h, ".yls.yaml"), "the path to the file which specifies configuration for youtube stream schedules (default '$HOME/.yls.yaml')")
 	startCmd.Flags().BoolVarP(&runNow, "now", "n", false, "specifies whether to execute all configured stream jobs immediately instead of scheduling them for a future date/time. Note that any future jobs will NOT be scheduled when this flag is specified.")
 	startCmd.Flags().BoolVarP(&publish, "publish", "p", false, "specifies whether to publish the stream using a configured publisher (ie: wordpress)")
 	startCmd.Flags().StringVar(&publishOptions.WPConfig, "wp-config", os.Getenv("YLS_WP_CONFIG"), "(optional) the path to a file containing configuration (in YAML) for a wordpress publisher")
