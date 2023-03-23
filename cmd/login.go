@@ -14,10 +14,11 @@ import (
 var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "forces a login and stores the resulting access token in the configured credentials cache",
-	Long:  "by forcing a login, we can update credentials before use in a docker/container environment for example",
+	Long:  "forces a login and stores the resulting access token in the configured credentials cache\n\nBy forcing a login, we can update credentials that are persisted to the disk before executing the program in a headless configuration",
 	Run: func(cmd *cobra.Command, args []string) {
+		YLSLogger().Debug("config", zap.String("oauth_config", oauthConfigFile))
 		if oauthConfigFile == "" {
-			YLSLogger().Fatal("oauth configuration file is required. specify --oauth-config or use the environment variable YLS_OAUTH_CONFIG")
+			YLSLogger().Fatal("oauth configuration file is required. specify --oauth-config or use the environment variable YLS_OAUTH2_CONFIG")
 		}
 		b, err := os.ReadFile(oauthConfigFile)
 		if err != nil {
