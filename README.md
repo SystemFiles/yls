@@ -73,8 +73,6 @@ cat $(pwd)/streams.config.example.yaml > ~/.yls.yaml
 
 You will need a computer to run this on that can remain on 24/7 as this is a daemon process and is primarily meant to be run in the background.
 
-The app will manage schedules for you once configured and will respond to configuration changes in real-time. This means if you need to make a change, you needn't restart the daemon.
-
 ### Publishers
 
 As of `v0.2.x`, YLS now supports publishers. While more publishers can easily be extended through the `Publisher` interface, currently the following publishers are supported:

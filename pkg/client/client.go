@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
@@ -53,6 +54,11 @@ func tokenFromFile(file string) (*oauth2.Token, error) {
 
 	t := &oauth2.Token{}
 	err = json.NewDecoder(f).Decode(t)
+
+	if time.Now().After(t.Expiry) {
+		YLSLogger().Warn("access token is expired", zap.String("expired", t.Expiry.String()))
+	}
+
 	return t, err
 }
 

@@ -11,20 +11,20 @@ import (
 )
 
 type StreamList struct {
-	Items []Stream `mapstructure:"streams"`
+	Items []Stream `yaml:"streams"`
 }
 
 type Stream struct {
-	Name              string `mapstructure:"name"`
-	Title       string `mapstructure:"title"`
-	Description       string `mapstructure:"description"`
-	Schedule          string `mapstructure:"schedule"`
-	StartDelaySeconds uint16 `mapstructure:"delaySeconds"`
-	PrivacyLevel      string `mapstructure:"privacyLevel"`
+	Name              string `yaml:"name"`
+	Title             string `yaml:"title"`
+	Description       string `yaml:"description"`
+	Schedule          string `yaml:"schedule"`
+	StartDelaySeconds uint16 `yaml:"delaySeconds"`
+	PrivacyLevel      string `yaml:"privacyLevel"`
 
-	dryRun  bool             `mapstructure:"-"`
-	service *youtube.Service `mapstructure:"-"`
-	publisher pub.Publisher  `mapstructure:"-"`
+	dryRun    bool             `yaml:"-"`
+	service   *youtube.Service `yaml:"-"`
+	publisher pub.Publisher    `yaml:"-"`
 }
 
 func (s *Stream) WithService(y *youtube.Service) *Stream {
@@ -110,6 +110,7 @@ func (s *Stream) Go() {
 			zap.String("currentStatus", broadcastResp.Status.RecordingStatus),
 			zap.Strings("validStreamKeys", streamKeys),
 			zap.String("shareableLink", fmt.Sprintf("https://youtube.com/live/%s?feature=share", broadcastResp.Id)),
+			zap.String("embedableLink", fmt.Sprintf("https://youtube.com/embed/%s", broadcastResp.Id)),
 		)
 
 		if s.publisher != nil {
