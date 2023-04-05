@@ -2,93 +2,77 @@ package pub
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"html/template"
-	"os"
-	"path"
-	"regexp"
 
+	"github.com/Masterminds/sprig"
 	"github.com/sogko/go-wordpress"
 	"go.uber.org/zap"
 	"google.golang.org/api/youtube/v3"
-	"gopkg.in/yaml.v3"
 
 	"sykesdev.ca/yls/pkg/logging"
 )
 
-type PublishVars struct {
-	StreamURLEmbed string
-	StreamURLShare string
-}
-
-type WordPressPublisher struct {
-	// BaseURL is the Base URL for the wordpress v2 API
-	BaseURL string `yaml:"apiBaseURL"`
-	// Username is the Username for the user/service-account from which requests can be issued
+type WordpressConfig struct {
+	// Connection
+	Host     string `yaml:"host"`
+	Port     string `yaml:"port"`
+	TLS      bool   `yaml:"tls"`
 	Username string `yaml:"username"`
-	// AppToken is a generated revokable password used to authenticate the user provided by `username`
-	// Note: the AppToken IS NOT the users password and is actually more similar to an API Key
 	AppToken string `yaml:"appToken"`
-	// ExistingPageId is an optional field where an optional wordpress Page ID can be specified for update
-	// if existingpageId is not specified, a new page will be created for each publish operation
-	ExistingPageId int `yaml:"existingPageID,omitempty"`
-	// PageTemplate is a string that contains a gotemplate-compatible HTML page template that can be used to construct
-	// a resulting page for a wordpress publish
-	PageTemplate string `yaml:"pageTemplate"`
-	// client represents a Go-Wordpress client that wraps the wordpress API into a more usable form
-	// Note: cannot be marshalled/unmarshalled
-	client *wordpress.Client `yaml:"-"`
+	// Indexing preferences
+	ExistingPageId int    `yaml:"existingPageID,omitempty"`
+	Content        string `yaml:"content"`
 }
 
-func NewWordpressPublisher() *WordPressPublisher {
-	return &WordPressPublisher{}
-}
-
-func configFromFile(p string) (*WordPressPublisher, error) {
-	if p == "" {
-		return nil, errors.New("must specify a valid filepath for wordpress publisher")
+func NewWordpressPublisher(cfg *WordpressConfig) (*Wordpress, error) {
+	proto := "http"
+	if cfg.TLS {
+		proto = "https"
 	}
-
-	b, err := os.ReadFile(path.Clean(p))
-	if err != nil {
-		return nil, err
-	}
-
-	var wp WordPressPublisher
-	err = yaml.Unmarshal(b, &wp)
-	if err != nil {
-		return nil, err
-	}
-
-	logging.YLSLogger().Debug("created Wordpress Publisher from config file",
-		zap.Any("wordpressPublisher", wp),
+	wpClient, err := cfg.getClient(
+		fmt.Sprintf("%s://%s:%s/wp-json/wp/v2", proto, cfg.Host, cfg.Port),
+		cfg.Username,
+		cfg.AppToken,
 	)
-	return &wp, nil
+	if err != nil {
+		return nil, err
+	}
+
+	return &Wordpress{
+		pageID:  cfg.ExistingPageId,
+		content: cfg.Content,
+		client:  wpClient,
+	}, nil
 }
 
-func (w *WordPressPublisher) getClient() error {
-	logging.YLSLogger().Debug("facts", zap.Any("pub", w))
-	w.client = wordpress.NewClient(&wordpress.Options{
-		BaseAPIURL: w.BaseURL,
-		Username:   w.Username,
-		Password:   w.AppToken,
+func (WordpressConfig) getClient(baseUrl, username, appToken string) (*wordpress.Client, error) {
+	client := wordpress.NewClient(&wordpress.Options{
+		BaseAPIURL: baseUrl,
+		Username:   username,
+		Password:   appToken,
 	})
 
-	_, _, _, err := w.client.Users().Me(nil)
+	_, _, _, err := client.Users().Me(nil)
 	if err != nil {
-		return fmt.Errorf("failed to instantiate a wordpress client. %e", err)
+		return nil, fmt.Errorf("failed to instantiate a wordpress client. %e", err)
 	}
 
 	logging.YLSLogger().Debug("created wordpress client for publisher",
-		zap.Any("client", w),
+		zap.Any("client", client),
 	)
-	return nil
+	return client, nil
 }
 
-func (w *WordPressPublisher) templatePage(vars *PublishVars) (string, error) {
+type Wordpress struct {
+	pageID  int
+	content string
+	client  *wordpress.Client
+}
+
+func (w *Wordpress) templatePage(vars interface{}) (string, error) {
 	var res bytes.Buffer
-	tmpl, err := template.New("p").Parse(w.PageTemplate)
+	tmpl, err := template.New("template").Funcs(sprig.FuncMap()).Parse(w.content)
 	if err != nil {
 		return "", err
 	}
@@ -100,33 +84,25 @@ func (w *WordPressPublisher) templatePage(vars *PublishVars) (string, error) {
 	return res.String(), err
 }
 
-func (w *WordPressPublisher) Publish(b *youtube.LiveBroadcast) error {
-	err := w.getClient()
-	if err != nil {
-		return err
+func (w *Wordpress) Publish(broadcast *youtube.LiveBroadcast, publishVars interface{}) error {
+	type Vars struct {
+		Broadcast *youtube.LiveBroadcast
+		ExtraVars interface{}
 	}
-	c := w.client
-
-	pVars := &PublishVars{
-		StreamURLEmbed: fmt.Sprintf("https://youtube.com/embed/%s?autoplay=0&livemonitor=1", b.Id),
-		StreamURLShare: fmt.Sprintf("https://youtube.com/live/%s?feature=share", b.Id),
-	}
-
-	logging.YLSLogger().Debug("creating page content using publish vars",
-		zap.Any("publishVars", pVars),
-	)
-
-	pageContent, err := w.templatePage(pVars)
+	pageContent, err := w.templatePage(&Vars{
+		Broadcast: broadcast,
+		ExtraVars: publishVars,
+	})
 	if err != nil {
 		return err
 	}
 
-	if w.ExistingPageId != 0 {
+	if w.pageID != 0 {
 		logging.YLSLogger().Debug("updating existing page with new Stream",
 			zap.String("content", pageContent),
-			zap.Int("existingPageID", w.ExistingPageId),
+			zap.Int("existingPageID", w.pageID),
 		)
-		_, _, _, err := c.Pages().Update(w.ExistingPageId, &wordpress.Page{
+		_, _, _, err := w.client.Pages().Update(w.pageID, &wordpress.Page{
 			Content: wordpress.Content{
 				Raw: pageContent,
 			},
@@ -135,78 +111,17 @@ func (w *WordPressPublisher) Publish(b *youtube.LiveBroadcast) error {
 	}
 
 	logging.YLSLogger().Debug("creating new page for stream publish",
-		zap.String("pageTitle", b.Snippet.Title),
+		zap.String("pageTitle", broadcast.Snippet.Title),
 		zap.String("content", pageContent),
 	)
-	_, _, _, err = c.Pages().Create(&wordpress.Page{
+	_, _, _, err = w.client.Pages().Create(&wordpress.Page{
+		Status: wordpress.PostStatusPublish,
 		Title: wordpress.Title{
-			Raw: b.Snippet.Title,
+			Raw: broadcast.Snippet.Title,
 		},
 		Content: wordpress.Content{
 			Raw: pageContent,
 		},
 	})
 	return err
-}
-
-func (w *WordPressPublisher) Configure(cmd *PublishOptions) {
-	p := &WordPressPublisher{}
-	if cmd.WPConfig != "" {
-		fp, err := configFromFile(cmd.WPConfig)
-		if err != nil {
-			logging.YLSLogger().Fatal("unable to construct publisher from config", zap.Error(err))
-		}
-		p = fp
-	}
-
-	if cmd.WPBaseURL != "" {
-		p.BaseURL = cmd.WPBaseURL
-	}
-
-	if cmd.WPUsername != "" {
-		p.Username = cmd.WPUsername
-	}
-
-	if cmd.WPAppToken != "" {
-		p.AppToken = cmd.WPAppToken
-	}
-
-	if cmd.WPPageTemplate != "" {
-		p.PageTemplate = cmd.WPPageTemplate
-	}
-
-	if cmd.WPExistingPageId != 0 {
-		p.ExistingPageId = cmd.WPExistingPageId
-	}
-
-	if match, err := regexp.MatchString(`https?:\/\/.+`, p.BaseURL); err != nil || !match {
-		logging.YLSLogger().Fatal("unable to construct publisher without a valid Base URL",
-			zap.String("BaseURL", p.BaseURL),
-		)
-	}
-
-	if p.Username == "" {
-		logging.YLSLogger().Fatal("unable to construct publisher without a username")
-	}
-
-	if p.AppToken == "" {
-		logging.YLSLogger().Fatal("unable to construct publisher without a password or app token")
-	}
-
-	if p.PageTemplate == "" {
-		logging.YLSLogger().Fatal("unable to construct publisher without a page template")
-	}
-
-	logging.YLSLogger().Debug("FACTS", zap.Any("publisher", p))
-
-	*w = WordPressPublisher{
-		BaseURL:        p.BaseURL,
-		Username:       p.Username,
-		AppToken:       p.AppToken,
-		ExistingPageId: p.ExistingPageId,
-		PageTemplate:   p.PageTemplate,
-		client:         &wordpress.Client{},
-	}
-
-	logging.YLSLogger().Debug("FACTS", zap.Any("publisher", p), zap.Any("ref", w))
 }

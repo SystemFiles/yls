@@ -54,12 +54,21 @@ Your file should follow be configured as shown:
 
 ```yaml
 streams:
-  - name: "Friendly name for logs and behind-the-scenes stuff"
-    title: "Title of Stream Broadcast"
-    description: "example description for stream broadcast"
-    schedule: "0 0 * * 0"
-    delaySeconds: 1800 # this is the delay from when the stream is scheduled to be created and when it is set to start accepting data
-    privacyLevel: "public" # can be one of 'private', 'public', 'unlisted'
+  - name: Example Stream
+    title: Example Stream
+    description: "Example Description....HAPPY BIRTHDAY!"
+    schedule: "30 10 * * 0" # post at 10:30AM local time every Sunday
+    delaySeconds: 1800 # delay stream start time for 30 minutes
+    privacyLevel: "unlisted"
+    publisher:
+      # wordpress:
+      #   host: example.ca
+      #   port: 80
+      #   tls: no
+      #   username: lsautosa01
+      #   appToken: "AAAA BBBB CCCC DDDD EEEE FFFF"
+      #   content: |
+      #     <iframe src="https://youtube.com/embed/{{ .Broadcast.Id }}" width="944" height="531" frameborder="0" allowfullscreen="allowfullscreen"></iframe>
 ```
 
 > If you'd like you can copy the [example configuration](/streams.config.example.yaml) and simply edit it.
@@ -73,31 +82,24 @@ cat $(pwd)/streams.config.example.yaml > ~/.yls.yaml
 
 You will need a computer to run this on that can remain on 24/7 as this is a daemon process and is primarily meant to be run in the background.
 
+> WARNING: right now I don't know how to configure headless access to the Youtube Data API V3 ([might be impossible](https://developers.google.com/youtube/v3/guides/moving_to_oauth))
+
 ### Publishers
 
 As of `v0.2.x`, YLS now supports publishers. While more publishers can easily be extended through the `Publisher` interface, currently the following publishers are supported:
 
 - Wordpress
 
-## Configuring a Publisher
+#### Planned Publishers
 
-Publishers can be configured via config files and/or through commandline arguments and/or environment variables.
+I'd like to expand the built-in publishers at some point (just need to find the time) to include the following (and more?)
 
-For the wordpress publisher an example configuration may include the following options:
-
-| Name | env variable | Description | Default | Example |
-| ---- | ------------ | ----------- | ------- | -------- |
-|publish| `N/A` |Specifies whether livestreams as part of this schedule should be published using a publisher|`false`|`false`|
-|wp-config| `YLS_WP_CONFIG` |the path to a file containing configuration (in YAML) for a wordpress publisher|`""`|`"/config/wp-pub.conf.yaml"`|
-|wp-base-url| `YLS_WP_BASE_URL` |the base URL for a the wordpress v2 API|`""`|`"https://wordpress.example.ca/wp-json/wp/v2"`|
-|wp-username| `YLS_WP_USERNAME` |the username for the user or service account to use for wordpress publishing|`""`|`"ben.sykes"`|
-|wp-app-token| `YLS_WP_APP_TOKEN` |the wordpress App token to use to authenticate the identified wordpress user|`""`|`"DadH6 aiUW GIsY 62Yt"`|
-|wp-page-id|`N/A`|(optional) a page ID for a wordpress page to publish changes to (if not specified, a page will be created)|`0`|`55555`|
-|wp-page-template|`YLS_WP_PAGE_TEMPLATE`|a string that contains a gotemplate-compatible HTLM page template to use to construct wordpress page content|`""`|`"<h1>Live stream</h1><p>Available at: {{ .StreamURLShare }}</p>"`|
-
-> As more publishers are added, options will be extended to configure specific traits of each of those implementations
-
-It is worth noting that options above (for publishers) that are not required or optional are only not required **if** `publish` is `false`.
+- Instagram
+- Twitter
+- Facebook
+- Webhook
+- Discord
+- Slack
 
 ### Extra Considerations
 
