@@ -10,9 +10,9 @@ import (
 
 // top-level CLI vars
 var (
-	loggingOut      string
-	dryRun          bool
-	debugMode       bool
+	loggingOut string
+	dryRun     bool
+	debugMode  bool
 )
 
 var (

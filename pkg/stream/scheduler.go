@@ -15,10 +15,10 @@ import (
 )
 
 type StreamSchedulerConfig struct {
-	pubConfig *pub.PublisherConfig `yaml:"publisher,omitempty"`
+	pubConfig    *pub.PublisherConfig `yaml:"publisher,omitempty"`
 	OAuthConfig  string               `yaml:"oauthConfig"`
 	SecretsCache string               `yaml:"secretsCache"`
-	streams       []*Stream `yaml:"stream"`
+	streams      []*Stream            `yaml:"stream"`
 }
 
 func (StreamSchedulerConfig) initYoutubeService(ctx context.Context, oauthConfig, secretsCache string) (*youtube.Service, error) {
@@ -52,9 +52,9 @@ func (s *StreamSchedulerConfig) iterator() *StreamIterator {
 
 type StreamScheduler struct {
 	pub.Publisher
-	Svc       *youtube.Service
-	dryRun    bool
-	Streams    *StreamIterator
+	Svc     *youtube.Service
+	dryRun  bool
+	Streams *StreamIterator
 }
 
 func NewScheduler(ctx context.Context, cfg *StreamSchedulerConfig) (*StreamScheduler, error) {
@@ -77,7 +77,7 @@ func NewScheduler(ctx context.Context, cfg *StreamSchedulerConfig) (*StreamSched
 
 	return &StreamScheduler{
 		Svc:       svc,
-		Streams:    cfg.iterator(),
+		Streams:   cfg.iterator(),
 		dryRun:    false,
 		Publisher: p,
 	}, nil

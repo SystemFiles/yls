@@ -16,7 +16,7 @@ type WordpressConfig struct {
 	// Connection
 	Host     string `yaml:"host"`
 	Port     string `yaml:"port"`
-	TLS bool `yaml:"tls"`
+	TLS      bool   `yaml:"tls"`
 	Username string `yaml:"username"`
 	AppToken string `yaml:"appToken"`
 	// Indexing preferences
