@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/signal"
 	"path"
@@ -11,11 +10,7 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/option"
-	"google.golang.org/api/youtube/v3"
 	"gopkg.in/yaml.v3"
-	"sykesdev.ca/yls/pkg/client"
 	"sykesdev.ca/yls/pkg/stream"
 )
 
@@ -25,7 +20,6 @@ var streamConfigFile string
 
 // publish
 var publish bool
-var publisher string
 
 var startCmd = &cobra.Command{
 	Use:   "start",
@@ -35,38 +29,38 @@ var startCmd = &cobra.Command{
 		signal.Notify(quit, syscall.SIGTERM)
 		signal.Notify(quit, syscall.SIGINT)
 		ctx := context.Background()
-		svc, err := initYoutubeService(ctx)
-		if err != nil {
-			YLSLogger().Fatal("unable to initialize the required Youtube Service endpoint", zap.String("error", err.Error()))
-		}
-		YLSLogger().Info("Youtube service has been initialized successfully")
-
-		streams, err := getStreamsFromFile()
+		scheduler, err := getSchedulerConfigFromFile(ctx)
 		if err != nil {
 			YLSLogger().Fatal("unable to get streams from input file", zap.String("file", streamConfigFile), zap.Error(err))
 		}
 
 		if runNow {
-			for _, s := range streams.Items {
-				if publish {
-					s.WithService(svc).DryRun(dryRun).WithPublisher(publishOptions).Go()
-				} else {
-					s.WithService(svc).DryRun(dryRun).Go()
-				}
+			jobs := 0
+			for scheduler.Streams.HasNext() {
+				stream.ScheduleLiveStream(&stream.ScheduleOptions{
+					Publisher: scheduler.Publisher,
+					Service:   scheduler.Svc,
+					Stream:    scheduler.Streams.Next(),
+					DryRun:    dryRun,
+					Publish:   publish,
+				})
+				jobs++
 			}
 
-			YLSLogger().Info("completed jobs for all configured streams", zap.Int("jobCount", len(streams.Items)))
+			YLSLogger().Info("completed jobs for all configured streams", zap.Int("jobCount", jobs))
 			return
 		}
 
 		c := cron.New()
-		for _, s := range streams.Items {
-			var err error
-			if publish {
-				_, err = c.AddFunc(s.Schedule, s.WithService(svc).WithPublisher("wordpress").DryRun(dryRun).Go)
-			} else {
-				_, err = c.AddFunc(s.Schedule, s.WithService(svc).DryRun(dryRun).Go)
-			}
+		for scheduler.Streams.HasNext() {
+			s := scheduler.Streams.Next()
+			_, err := c.AddFunc(s.Schedule, stream.ScheduleLiveStream(&stream.ScheduleOptions{
+				Publisher: scheduler.Publisher,
+				Service:   scheduler.Svc,
+				Stream:    scheduler.Streams.Next(),
+				DryRun:    dryRun,
+				Publish:   publish,
+			}))
 			if err != nil {
 				YLSLogger().Fatal("failed to create scheduled job for Stream", zap.String("streamName", s.Name), zap.Error(err))
 			}
@@ -83,48 +77,18 @@ var startCmd = &cobra.Command{
 	},
 }
 
-func getStreamsFromFile() (*stream.StreamList, error) {
+func getSchedulerConfigFromFile(ctx context.Context) (*stream.StreamScheduler, error) {
 	b, err := os.ReadFile(streamConfigFile)
 	if err != nil {
 		return nil, err
 	}
 
-	var streams stream.StreamList
-	if err := yaml.Unmarshal(b, &streams); err != nil {
-		return nil, err
-	}
-	YLSLogger().Debug("got streams from config file", zap.Any("value", streams.Items))
-
-	if len(streams.Items) == 0 {
-		return nil, errors.New("must specify at least one stream configuration to proceed")
-	}
-
-	return &streams, nil
-}
-
-func initYoutubeService(ctx context.Context) (*youtube.Service, error) {
-	if oauthConfigFile == "" {
-		return nil, errors.New("oauth configuration file is required. specify --oauth-config or use the environment variable YLS_OAUTH_CONFIG")
-	}
-	b, err := os.ReadFile(oauthConfigFile)
-	if err != nil {
-		YLSLogger().Fatal("Unable to read oauth configuration from file", zap.Error(err))
-	}
-
-	// If modifying these scopes, delete your previously saved credentials
-	// at ~/.credentials/youtube-go-quickstart.json
-	config, err := google.ConfigFromJSON(b, youtube.YoutubeScope)
-	if err != nil {
-		YLSLogger().Fatal("Unable to parse client secret file to config", zap.Error(err))
-	}
-
-	client := client.Get(ctx, secretsCache, config)
-	svc, err := youtube.NewService(ctx, option.WithHTTPClient(client))
-	if err != nil {
+	var config stream.StreamSchedulerConfig
+	if err := yaml.Unmarshal(b, &config); err != nil {
 		return nil, err
 	}
 
-	return svc, nil
+	return stream.NewScheduler(ctx, &config)
 }
 
 func init() {
@@ -132,7 +96,6 @@ func init() {
 
 	startCmd.Flags().StringVarP(&streamConfigFile, "input", "i", path.Join(h, ".yls.yaml"), "the path to the file which specifies configuration for youtube stream schedules (default '$HOME/.yls.yaml')")
 	startCmd.Flags().BoolVarP(&runNow, "now", "n", false, "specifies whether to execute all configured stream jobs immediately instead of scheduling them for a future date/time. Note that any future jobs will NOT be scheduled when this flag is specified.")
-	startCmd.Flags().BoolVarP(&publish, "publish", "p", false, "specifies whether to publish the stream using a configured publisher (ie: wordpress)")
 
 	rootCmd.AddCommand(startCmd)
 }

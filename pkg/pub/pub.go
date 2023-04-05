@@ -9,7 +9,7 @@ import (
 const PUBLISHER_WORDPRESS string = "wordpress"
 
 type Publisher interface {
-	Publish(*YoutubeStreamConfig, *youtube.LiveBroadcast) error
+	Publish(broadcast *youtube.LiveBroadcast, publishVars interface{}) error
 }
 
 type PublisherConfig struct {

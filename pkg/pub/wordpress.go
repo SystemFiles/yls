@@ -16,6 +16,7 @@ type WordpressConfig struct {
 	// Connection
 	Host     string `yaml:"host"`
 	Port     string `yaml:"port"`
+	TLS bool `yaml:"tls"`
 	Username string `yaml:"username"`
 	AppToken string `yaml:"appToken"`
 	// Indexing preferences
@@ -24,8 +25,12 @@ type WordpressConfig struct {
 }
 
 func NewWordpressPublisher(cfg *WordpressConfig) (*Wordpress, error) {
+	proto := "http"
+	if cfg.TLS {
+		proto = "https"
+	}
 	wpClient, err := cfg.getClient(
-		fmt.Sprintf("https://%s:%s/wp-json/wp/v2", cfg.Host, cfg.Port),
+		fmt.Sprintf("%s://%s:%s/wp-json/wp/v2", proto, cfg.Host, cfg.Port),
 		cfg.Username,
 		cfg.AppToken,
 	)
@@ -78,18 +83,8 @@ func (w *Wordpress) templatePage(vars interface{}) (string, error) {
 	return res.String(), err
 }
 
-func (w *Wordpress) Publish(stream *YoutubeStreamConfig, broadcast *youtube.LiveBroadcast) error {
-	type vars struct {
-		*YoutubeStreamConfig
-		*youtube.LiveBroadcast
-	}
-
-	combVars := &vars{
-		YoutubeStreamConfig: stream,
-		LiveBroadcast:       broadcast,
-	}
-
-	pageContent, err := w.templatePage(combVars)
+func (w *Wordpress) Publish(broadcast *youtube.LiveBroadcast, publishVars interface{}) error {
+	pageContent, err := w.templatePage(publishVars)
 	if err != nil {
 		return err
 	}
