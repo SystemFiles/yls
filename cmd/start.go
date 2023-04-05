@@ -16,7 +16,6 @@ import (
 	"google.golang.org/api/youtube/v3"
 	"gopkg.in/yaml.v3"
 	"sykesdev.ca/yls/pkg/client"
-	"sykesdev.ca/yls/pkg/pub"
 	"sykesdev.ca/yls/pkg/stream"
 )
 
@@ -26,7 +25,6 @@ var streamConfigFile string
 
 // publish
 var publish bool
-var publishOptions = &pub.PublishOptions{}
 
 var startCmd = &cobra.Command{
 	Use:   "start",
@@ -42,18 +40,25 @@ var startCmd = &cobra.Command{
 		}
 		YLSLogger().Info("Youtube service has been initialized successfully")
 
+		if oauthConfigFile == "" {
+			YLSLogger().Fatal("missing required oauth-config. please specify a path to a valid oauth2 config file using '--oauth-config PATH' or with the 'YLS_OAUTH2_CONFIG' environment variable")
+		}
+
 		streams, err := getStreamsFromFile()
 		if err != nil {
 			YLSLogger().Fatal("unable to get streams from input file", zap.String("file", streamConfigFile), zap.Error(err))
 		}
 
+		ub := stream.NewStreamUploadClientBuilder()
+		ub.SetService(svc)
+		if dryRun {
+			ub.SetDryRun()
+		}
+		streamUploader := ub.Build()
+
 		if runNow {
 			for _, s := range streams.Items {
-				if publish {
-					s.WithService(svc).DryRun(dryRun).WithPublisher(publishOptions).Go()
-				} else {
-					s.WithService(svc).DryRun(dryRun).Go()
-				}
+				streamUploader.Upload(&s)()
 			}
 
 			YLSLogger().Info("completed jobs for all configured streams", zap.Int("jobCount", len(streams.Items)))
@@ -62,12 +67,7 @@ var startCmd = &cobra.Command{
 
 		c := cron.New()
 		for _, s := range streams.Items {
-			var err error
-			if publish {
-				_, err = c.AddFunc(s.Schedule, s.WithService(svc).WithPublisher(publishOptions).DryRun(dryRun).Go)
-			} else {
-				_, err = c.AddFunc(s.Schedule, s.WithService(svc).DryRun(dryRun).Go)
-			}
+			_, err := c.AddFunc(s.Schedule, streamUploader.Upload(&s))
 			if err != nil {
 				YLSLogger().Fatal("failed to create scheduled job for Stream", zap.String("streamName", s.Name), zap.Error(err))
 			}
@@ -112,8 +112,6 @@ func initYoutubeService(ctx context.Context) (*youtube.Service, error) {
 		YLSLogger().Fatal("Unable to read oauth configuration from file", zap.Error(err))
 	}
 
-	// If modifying these scopes, delete your previously saved credentials
-	// at ~/.credentials/youtube-go-quickstart.json
 	config, err := google.ConfigFromJSON(b, youtube.YoutubeScope)
 	if err != nil {
 		YLSLogger().Fatal("Unable to parse client secret file to config", zap.Error(err))
@@ -133,13 +131,6 @@ func init() {
 
 	startCmd.Flags().StringVarP(&streamConfigFile, "input", "i", path.Join(h, ".yls.yaml"), "the path to the file which specifies configuration for youtube stream schedules (default '$HOME/.yls.yaml')")
 	startCmd.Flags().BoolVarP(&runNow, "now", "n", false, "specifies whether to execute all configured stream jobs immediately instead of scheduling them for a future date/time. Note that any future jobs will NOT be scheduled when this flag is specified.")
-	startCmd.Flags().BoolVarP(&publish, "publish", "p", false, "specifies whether to publish the stream using a configured publisher (ie: wordpress)")
-	startCmd.Flags().StringVar(&publishOptions.WPConfig, "wp-config", os.Getenv("YLS_WP_CONFIG"), "(optional) the path to a file containing configuration (in YAML) for a wordpress publisher")
-	startCmd.Flags().StringVar(&publishOptions.WPBaseURL, "wp-base-url", os.Getenv("YLS_WP_BASE_URL"), "the base URL for a the wordpress v2 API")
-	startCmd.Flags().StringVar(&publishOptions.WPUsername, "wp-username", os.Getenv("YLS_WP_USERNAME"), "the username for the user or service account to use for wordpress publishing")
-	startCmd.Flags().StringVar(&publishOptions.WPAppToken, "wp-app-token", os.Getenv("YLS_WP_APP_TOKEN"), "the wordpress App token to use to authenticate the identified wordpress user")
-	startCmd.Flags().IntVar(&publishOptions.WPExistingPageId, "wp-page-id", 0, "(optional) a page ID for a wordpress page to publish changes to (if not specified, a page will be created)")
-	startCmd.Flags().StringVar(&publishOptions.WPPageTemplate, "wp-page-template", os.Getenv("YLS_WP_PAGE_TEMPLATE"), "a string that contains a gotemplate-compatible HTLM page template to use to construct wordpress page content")
 
 	rootCmd.AddCommand(startCmd)
 }
