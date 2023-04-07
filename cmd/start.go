@@ -11,11 +11,7 @@ import (
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/option"
-	"google.golang.org/api/youtube/v3"
 	"gopkg.in/yaml.v3"
-	"sykesdev.ca/yls/pkg/client"
 	"sykesdev.ca/yls/pkg/stream"
 )
 
@@ -34,11 +30,6 @@ var startCmd = &cobra.Command{
 		signal.Notify(quit, syscall.SIGTERM)
 		signal.Notify(quit, syscall.SIGINT)
 		ctx := context.Background()
-		svc, err := initYoutubeService(ctx)
-		if err != nil {
-			YLSLogger().Fatal("unable to initialize the required Youtube Service endpoint", zap.String("error", err.Error()))
-		}
-		YLSLogger().Info("Youtube service has been initialized successfully")
 
 		if oauthConfigFile == "" {
 			YLSLogger().Fatal("missing required oauth-config. please specify a path to a valid oauth2 config file using '--oauth-config PATH' or with the 'YLS_OAUTH2_CONFIG' environment variable")
@@ -50,7 +41,13 @@ var startCmd = &cobra.Command{
 		}
 
 		ub := stream.NewStreamUploadClientBuilder()
-		ub.SetService(svc)
+		if err := ub.InitService(&stream.ServiceConfig{
+			Ctx:         ctx,
+			OauthConfig: oauthConfigFile,
+			Cache:       secretsCache,
+		}); err != nil {
+			YLSLogger().Fatal("unable to initialize Youtube service client", zap.Error(err))
+		}
 		if dryRun {
 			ub.SetDryRun()
 		}
@@ -101,29 +98,6 @@ func getStreamsFromFile() (*stream.StreamList, error) {
 	}
 
 	return &streams, nil
-}
-
-func initYoutubeService(ctx context.Context) (*youtube.Service, error) {
-	if oauthConfigFile == "" {
-		return nil, errors.New("oauth configuration file is required. specify --oauth-config or use the environment variable YLS_OAUTH_CONFIG")
-	}
-	b, err := os.ReadFile(oauthConfigFile)
-	if err != nil {
-		YLSLogger().Fatal("Unable to read oauth configuration from file", zap.Error(err))
-	}
-
-	config, err := google.ConfigFromJSON(b, youtube.YoutubeScope)
-	if err != nil {
-		YLSLogger().Fatal("Unable to parse client secret file to config", zap.Error(err))
-	}
-
-	client := client.Get(ctx, secretsCache, config)
-	svc, err := youtube.NewService(ctx, option.WithHTTPClient(client))
-	if err != nil {
-		return nil, err
-	}
-
-	return svc, nil
 }
 
 func init() {
