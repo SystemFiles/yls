@@ -60,15 +60,15 @@ streams:
     schedule: "30 10 * * 0" # post at 10:30AM local time every Sunday
     delaySeconds: 1800 # delay stream start time for 30 minutes
     privacyLevel: "unlisted"
-#     publisher:
-      # wordpress:
-      #   host: example.ca
-      #   port: 80
-      #   tls: no
-      #   username: lsautosa01
-      #   appToken: "AAAA BBBB CCCC DDDD EEEE FFFF"
-      #   content: |
-      #     <iframe src="https://youtube.com/embed/{{ .Broadcast.Id }}" width="944" height="531" frameborder="0" allowfullscreen="allowfullscreen"></iframe>
+#    publisher:
+#      wordpress:
+#        host: example.ca
+#        port: 80
+#        tls: no
+#        username: lsautosa01
+#        appToken: "AAAA BBBB CCCC DDDD EEEE FFFF"
+#        content: |
+#          <iframe src="https://youtube.com/embed/{{ .Broadcast.Id }}" width="944" height="531" frameborder="0" allowfullscreen="allowfullscreen"></iframe>
 ```
 
 > If you'd like you can copy the [example configuration](/streams.config.example.yaml) and simply edit it.
