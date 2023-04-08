@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"strings"
 
 	"github.com/Masterminds/sprig"
 	"github.com/sogko/go-wordpress"
@@ -21,9 +22,36 @@ type WordpressConfig struct {
 	Username string `yaml:"username"`
 	AppToken string `yaml:"appToken"`
 	// Indexing preferences
-	ExistingPageId int    `yaml:"existingPageID,omitempty"`
-	Content        string `yaml:"content"`
+	ExistingPageId int `yaml:"existingPageID,omitempty"`
+	// Wordpress payload data
+	Data WordpressData `yaml:"data"`
 }
+
+type WordpressMeta struct {
+	Id             int    `yaml:"existingId,omitempty"`
+	Type           string `yaml:"type,omitempty"`
+	TitleOverride  string `yaml:"titleOverride,omitempty"`
+	Slug           string `yaml:"slug,omitempty"`
+	Password       string `yaml:"password,omitempty"`
+	Status         string `yaml:"status,omitempty"`
+	CommentStatus  string `yaml:"comment_status,omitempty"`
+	Parent         int    `yaml:"parent,omitempty"`
+	AuthorOverride int    `yaml:"author,omitempty"`
+	// future fields (will not do anything right now)
+	FeaturedImage int `yaml:"featured_image,omitempty"`
+}
+
+type WordpressData struct {
+	Meta    WordpressMeta `yaml:"meta"`
+	Content string        `yaml:"content"`
+}
+
+const (
+	CONTENT_TYPE_BLOGPOST = "post"
+	CONTENT_TYPE_PAGE     = "page"
+)
+
+var CONTENT_TYPES_ALLOWED = []string{CONTENT_TYPE_BLOGPOST, CONTENT_TYPE_PAGE}
 
 func NewWordpressPublisher(cfg *WordpressConfig) (*Wordpress, error) {
 	proto := "http"
@@ -40,9 +68,8 @@ func NewWordpressPublisher(cfg *WordpressConfig) (*Wordpress, error) {
 	}
 
 	return &Wordpress{
-		pageID:  cfg.ExistingPageId,
-		content: cfg.Content,
-		client:  wpClient,
+		client: wpClient,
+		data:   &cfg.Data,
 	}, nil
 }
 
@@ -64,15 +91,17 @@ func (WordpressConfig) getClient(baseUrl, username, appToken string) (*wordpress
 	return client, nil
 }
 
+/*
+WORDPRESS CLIENT OBJECT
+*/
 type Wordpress struct {
-	pageID  int
-	content string
-	client  *wordpress.Client
+	data   *WordpressData
+	client *wordpress.Client
 }
 
 func (w *Wordpress) templatePage(vars interface{}) (string, error) {
 	var res bytes.Buffer
-	tmpl, err := template.New("template").Funcs(sprig.FuncMap()).Parse(w.content)
+	tmpl, err := template.New("template").Funcs(sprig.FuncMap()).Parse(w.data.Content)
 	if err != nil {
 		return "", err
 	}
@@ -89,6 +118,11 @@ func (w *Wordpress) Publish(broadcast *youtube.LiveBroadcast, publishVars interf
 		Broadcast *youtube.LiveBroadcast
 		ExtraVars interface{}
 	}
+
+	if !stringInSlice(defaultValue(w.data.Meta.Type, CONTENT_TYPE_PAGE, ""), CONTENT_TYPES_ALLOWED) {
+		return fmt.Errorf("invalid value for Wordpress content type. must be one of [%s]", strings.Join(CONTENT_TYPES_ALLOWED, ", "))
+	}
+
 	pageContent, err := w.templatePage(&Vars{
 		Broadcast: broadcast,
 		ExtraVars: publishVars,
@@ -97,31 +131,51 @@ func (w *Wordpress) Publish(broadcast *youtube.LiveBroadcast, publishVars interf
 		return err
 	}
 
-	if w.pageID != 0 {
+	post := &wordpress.Post{
+		Password:      w.data.Meta.Password,
+		Slug:          w.data.Meta.Slug,
+		Status:        defaultValue(w.data.Meta.Status, wordpress.PostStatusPrivate, ""),
+		Type:          defaultValue(w.data.Meta.Type, CONTENT_TYPE_PAGE, ""),
+		Title:         wordpress.Title{Raw: broadcast.Snippet.Title},
+		Content:       wordpress.Content{Raw: pageContent},
+		Author:        w.data.Meta.AuthorOverride,
+		CommentStatus: w.data.Meta.CommentStatus,
+	}
+
+	page := &wordpress.Page{
+		Password:      w.data.Meta.Password,
+		Slug:          w.data.Meta.Slug,
+		Status:        defaultValue(w.data.Meta.Status, wordpress.PostStatusPrivate, ""),
+		Type:          defaultValue(w.data.Meta.Type, CONTENT_TYPE_PAGE, ""),
+		Title:         wordpress.Title{Raw: defaultValue(w.data.Meta.TitleOverride, broadcast.Snippet.Title, "")},
+		Content:       wordpress.Content{Raw: pageContent},
+		Author:        w.data.Meta.AuthorOverride,
+		CommentStatus: w.data.Meta.CommentStatus,
+	}
+
+	// update the page using an existing ID reference
+	if w.data.Meta.Id != 0 {
 		logging.YLSLogger().Debug("updating existing page with new Stream",
 			zap.String("content", pageContent),
-			zap.Int("existingPageID", w.pageID),
+			zap.Int("existingPageID", w.data.Meta.Id),
 		)
-		_, _, _, err := w.client.Pages().Update(w.pageID, &wordpress.Page{
-			Content: wordpress.Content{
-				Raw: pageContent,
-			},
-		})
+
+		if w.data.Meta.Type == CONTENT_TYPE_BLOGPOST {
+			_, _, _, err := w.client.Posts().Update(w.data.Meta.Id, post)
+			return err
+		}
+		_, _, _, err := w.client.Pages().Update(w.data.Meta.Id, page)
 		return err
 	}
 
-	logging.YLSLogger().Debug("creating new page for stream publish",
-		zap.String("pageTitle", broadcast.Snippet.Title),
+	logging.YLSLogger().Debug("creating new post for stream publish",
+		zap.String("postTitle", broadcast.Snippet.Title),
 		zap.String("content", pageContent),
 	)
-	_, _, _, err = w.client.Pages().Create(&wordpress.Page{
-		Status: wordpress.PostStatusPublish,
-		Title: wordpress.Title{
-			Raw: broadcast.Snippet.Title,
-		},
-		Content: wordpress.Content{
-			Raw: pageContent,
-		},
-	})
+	if w.data.Meta.Type == CONTENT_TYPE_BLOGPOST {
+		_, _, _, err := w.client.Posts().Create(post)
+		return err
+	}
+	_, _, _, err = w.client.Pages().Create(page)
 	return err
 }

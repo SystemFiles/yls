@@ -1,11 +1,17 @@
 package stream
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"go.uber.org/zap"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/option"
 	"google.golang.org/api/youtube/v3"
+	"sykesdev.ca/yls/pkg/client"
 	"sykesdev.ca/yls/pkg/logging"
 )
 
@@ -15,8 +21,14 @@ type Uploader interface {
 
 type Builder interface {
 	SetDryRun()
-	SetService(*youtube.Service)
+	InitService(context.Context, *youtube.Service)
 	Build() *StreamUploadClient
+}
+
+type ServiceConfig struct {
+	Ctx         context.Context
+	OauthConfig string
+	Cache       string
 }
 
 type StreamUploadClientBuilder struct {
@@ -32,8 +44,28 @@ func (b *StreamUploadClientBuilder) SetDryRun() {
 	b.dryRun = true
 }
 
-func (b *StreamUploadClientBuilder) SetService(y *youtube.Service) {
-	b.service = y
+func (b *StreamUploadClientBuilder) InitService(cfg *ServiceConfig) error {
+	if cfg.OauthConfig == "" {
+		return errors.New("oauth configuration file is required. specify --oauth-config or use the environment variable YLS_OAUTH_CONFIG")
+	}
+	c, err := os.ReadFile(cfg.OauthConfig)
+	if err != nil {
+		return fmt.Errorf("unable to read the provided Oauth2 configuration file. %e", err)
+	}
+
+	config, err := google.ConfigFromJSON(c, youtube.YoutubeScope)
+	if err != nil {
+		return err
+	}
+
+	client := client.Get(cfg.Ctx, cfg.Cache, config)
+	svc, err := youtube.NewService(cfg.Ctx, option.WithHTTPClient(client))
+	if err != nil {
+		return err
+	}
+
+	b.service = svc
+	return nil
 }
 
 func (b *StreamUploadClientBuilder) Build() *StreamUploadClient {
@@ -130,7 +162,7 @@ func (u *StreamUploadClient) Upload(s *Stream) func() {
 				logging.YLSLogger().Info("published stream to publish target using configured publisher", zap.Any("publisherName", s.Publisher))
 			} else {
 				logging.YLSLogger().Warn("no publisher config specified for stream. skipping stream publish. don't worry, the Youtube livestream was still created",
-					zap.Any("stream", s),
+					zap.Any("stream", s.Name),
 				)
 			}
 		}
