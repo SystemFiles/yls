@@ -162,7 +162,7 @@ func (u *StreamUploadClient) Upload(s *Stream) func() {
 				logging.YLSLogger().Info("published stream to publish target using configured publisher", zap.Any("publisherName", s.Publisher))
 			} else {
 				logging.YLSLogger().Warn("no publisher config specified for stream. skipping stream publish. don't worry, the Youtube livestream was still created",
-					zap.Any("stream", s),
+					zap.Any("stream", s.Name),
 				)
 			}
 		}

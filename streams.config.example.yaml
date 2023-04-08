@@ -1,17 +1,19 @@
 streams:
   - name: Example Stream
     title: Example Stream
-    description: "Example Description....HAPPY BIRTHDAY!"
-    schedule: "30 10 * * 0" # post at 10:30AM local time every Sunday
+    description: "Example Description ... .. ... .."
+    schedule: "*/1 * * * *" # every 10 minutes
     delaySeconds: 1800 # delay stream start time for 30 minutes
     privacyLevel: "unlisted"
-#   publisher:
-      # wordpress:
-      #   host: example.ca
-      #   port: 80
-      #   tls: no
-      #   username: lsautosa01
-      #   appToken: "AAAA BBBB CCCC DDDD EEEE FFFF"
-      #   content: |
-      #     <iframe src="https://youtube.com/embed/{{ .Broadcast.Id }}" width="944" height="531" frameborder="0" allowfullscreen="allowfullscreen"></iframe>
-
+    # publisher:
+    #   wordpress:
+    #     host: example.ca
+    #     port: 80
+    #     tls: no
+    #     username: admin
+    #     appToken: "AAAA BBBB CCCC DDDD EEEE FFFF"
+    #     content:
+    #       meta:
+    #         status: published
+    #       content: |
+    #         <h1>Hello</h1>
