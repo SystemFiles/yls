@@ -12,6 +12,28 @@ This project is licensed under [Apache2.0](/LICENSE).
 
 If you'd like to contribute some code or have a suggestion/issue, please check the [CONTRIBUTING](/CONTRIBUTING.md) guidelines.
 
+## Prerequisites
+
+There are some additional dependencies used by this project that are dynamically linked during compile-time. Dynamic linking is used to help reduce the binary size for faster download during installation and so that the application can get updates for linked dependencies from the OS directly. 
+
+Below are the required dependencies by OS
+
+Debian-based systems
+
+* g++
+* g++-9
+* libstdc++-9-dev
+
+> These can be installed from the build-essential bundle `apt install -y build-essential`
+
+Fedora:
+
+* gcc
+* gcc-c++
+* kernel-devel
+
+> These can be install using dnf `dnf install gcc gcc-c++ kernel-devel`
+
 ## Installation
 
 ### Binary
