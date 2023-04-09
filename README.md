@@ -18,6 +18,13 @@ If you'd like to contribute some code or have a suggestion/issue, please check t
 
 Download the binary from the [releases page](https://gitlab.sykesdev.ca/standalone-projects/yls/-/releases)
 
+```bash
+ARCH=amd64
+mkdir -pv $HOME/bin && curl -sSLo yls.tar.gz "https://gitlab.sykesdev.ca/standalone-projects/yls/-/releases/v$(curl -s 'https://gitlab.sykesdev.ca/api/v4/projects/62/releases?sort=desc' | jq -rc '.[0].name' | sed -e 's/v//g')/downloads/yls_$(curl -s 'https://gitlab.sykesdev.ca/api/v4/projects/62/releases?sort=desc' | jq -rc '.[0].name' | sed -e 's/v//g')_$(uname -s | tr '[A-Z]' '[a-z]')_${ARCH}.tar.gz" && tar -C $HOME/bin -zxf ./yls.tar.gz yls && rm yls.tar.gz
+```
+
+> Note: does not work on Windows
+
 ### Docker
 
 You can find all related docker images in [Docker Hub](https://hub.docker.com/repository/docker/sykeben/yls/general)
