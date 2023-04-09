@@ -15,69 +15,43 @@ import (
 	"sykesdev.ca/yls/pkg/logging"
 )
 
-type Uploader interface {
-	Upload(*Stream) func()
-}
-
-type Builder interface {
-	SetDryRun()
-	InitService(context.Context, *youtube.Service)
-	Build() *StreamUploadClient
-}
-
-type ServiceConfig struct {
-	Ctx         context.Context
+type StreamUploaderConfig struct {
+	Context     context.Context
 	OauthConfig string
 	Cache       string
-}
-
-type StreamUploadClientBuilder struct {
-	service *youtube.Service
-	dryRun  bool
-}
-
-func NewStreamUploadClientBuilder() *StreamUploadClientBuilder {
-	return &StreamUploadClientBuilder{}
-}
-
-func (b *StreamUploadClientBuilder) SetDryRun() {
-	b.dryRun = true
-}
-
-func (b *StreamUploadClientBuilder) InitService(cfg *ServiceConfig) error {
-	if cfg.OauthConfig == "" {
-		return errors.New("oauth configuration file is required. specify --oauth-config or use the environment variable YLS_OAUTH_CONFIG")
-	}
-	c, err := os.ReadFile(cfg.OauthConfig)
-	if err != nil {
-		return fmt.Errorf("unable to read the provided Oauth2 configuration file. %e", err)
-	}
-
-	config, err := google.ConfigFromJSON(c, youtube.YoutubeScope)
-	if err != nil {
-		return err
-	}
-
-	client := client.Get(cfg.Ctx, cfg.Cache, config)
-	svc, err := youtube.NewService(cfg.Ctx, option.WithHTTPClient(client))
-	if err != nil {
-		return err
-	}
-
-	b.service = svc
-	return nil
-}
-
-func (b *StreamUploadClientBuilder) Build() *StreamUploadClient {
-	return &StreamUploadClient{
-		svc:    b.service,
-		dryRun: b.dryRun,
-	}
+	Scopes      []string
+	DryRunMode  bool
 }
 
 type StreamUploadClient struct {
 	svc    *youtube.Service
 	dryRun bool
+}
+
+func New(cfg *StreamUploaderConfig) (*StreamUploadClient, error) {
+	if cfg.OauthConfig == "" {
+		return nil, errors.New("oauth configuration file is required. specify --oauth-config")
+	}
+	c, err := os.ReadFile(cfg.OauthConfig)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read the provided Oauth2 configuration file. %e", err)
+	}
+
+	config, err := google.ConfigFromJSON(c, cfg.Scopes...)
+	if err != nil {
+		return nil, err
+	}
+
+	client := client.Get(cfg.Context, cfg.Cache, config)
+	svc, err := youtube.NewService(cfg.Context, option.WithHTTPClient(client))
+	if err != nil {
+		return nil, err
+	}
+
+	return &StreamUploadClient{
+		svc:    svc,
+		dryRun: cfg.DryRunMode,
+	}, nil
 }
 
 func (u *StreamUploadClient) Upload(s *Stream) func() {
