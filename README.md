@@ -23,6 +23,7 @@ Debian-based systems
 * g++
 * g++-9
 * libstdc++-9-dev
+* jq (single-line command install only)
 
 > These can be installed from the build-essential bundle `apt install -y build-essential`
 
@@ -31,6 +32,7 @@ Fedora:
 * gcc
 * gcc-c++
 * kernel-devel
+* jq (single-line command install only)
 
 > These can be install using dnf `dnf install gcc gcc-c++ kernel-devel`
 
