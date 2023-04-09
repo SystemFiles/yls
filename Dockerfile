@@ -1,4 +1,5 @@
 FROM golang:1.19 as builder
+ARG VERSION
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -19,7 +20,7 @@ COPY pkg/ pkg/
 # was called. For example, if we call make docker-build in a local env which has the Apple Silicon M1 SO
 # the docker BUILDPLATFORM arg will be linux/arm64 when for Apple x86 it will be linux/amd64. Therefore,
 # by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
-RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o yls main.go
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -ldflags="-s -w -X sykesdev.ca/yls/cmd.version=${VERSION} -X sykesdev.ca/yls/cmd.commitSha=${VERSION} -X sykesdev.ca/yls/cmd.targetOs=${TARGETOS} -X sykesdev.ca/yls/cmd.targetArch=${TARGETARCH} -X sykesdev.ca/yls/cmd.buildstamp=$(date +%s)" -o yls main.go
 
 # use scratch to limit attack surface-area
 FROM scratch
