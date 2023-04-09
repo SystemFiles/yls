@@ -1,7 +1,7 @@
 builds:
   - ldflags:
-    - -s -w -X sykesdev.ca/yls/cmd.version={{.ENV.CI_COMMIT_TAG}}
-    - -s -w -X sykesdev.ca/yls/cmd.commitSha={{.ENV.CI_COMMIT_SHA}}
+    - -s -w -X sykesdev.ca/yls/cmd.version={{.Env.CI_COMMIT_TAG}}
+    - -s -w -X sykesdev.ca/yls/cmd.commitSha={{.Env.CI_COMMIT_SHA}}
     - -s -w -X sykesdev.ca/yls/cmd.targetOs={{.Os}}
     - -s -w -X sykesdev.ca/yls/cmd.targetArch={{.Arch}}
     - -s -w -X sykesdev.ca/yls/cmd.buildstamp={{.CommitTimestamp}}
