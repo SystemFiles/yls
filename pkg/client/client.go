@@ -3,9 +3,11 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
@@ -53,6 +55,17 @@ func tokenFromFile(file string) (*oauth2.Token, error) {
 
 	t := &oauth2.Token{}
 	err = json.NewDecoder(f).Decode(t)
+
+	// only triggers if scopes setup by application owner do not include 'offline_access' and therefore do not include
+	// a refresh token.
+	if time.Now().After(t.Expiry) && t.RefreshToken == "" {
+		YLSLogger().Warn("youtube authentication tokens have expired",
+			zap.String("token", t.AccessToken),
+			zap.Time("expired", t.Expiry),
+			zap.String("rt", t.RefreshToken),
+		)
+		return nil, errors.New("token expired")
+	}
 
 	return t, err
 }
