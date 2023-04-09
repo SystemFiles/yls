@@ -5,12 +5,12 @@ import (
 	"errors"
 	"os"
 	"os/signal"
-	"path"
 	"syscall"
 
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
+	"google.golang.org/api/youtube/v3"
 	"gopkg.in/yaml.v3"
 	"sykesdev.ca/yls/pkg/stream"
 )
@@ -18,9 +18,6 @@ import (
 // youtube
 var runNow bool
 var streamConfigFile string
-
-// publish
-var publish bool
 
 var startCmd = &cobra.Command{
 	Use:   "start",
@@ -31,8 +28,15 @@ var startCmd = &cobra.Command{
 		signal.Notify(quit, syscall.SIGINT)
 		ctx := context.Background()
 
-		if oauthConfigFile == "" {
-			YLSLogger().Fatal("missing required oauth-config. please specify a path to a valid oauth2 config file using '--oauth-config PATH' or with the 'YLS_OAUTH2_CONFIG' environment variable")
+		streamUploader, err := stream.New(&stream.StreamUploaderConfig{
+			Context:     ctx,
+			OauthConfig: oauthConfigFile,
+			Cache:       secretsCache,
+			Scopes:      []string{youtube.YoutubeScope},
+			DryRunMode:  dryRun,
+		})
+		if err != nil {
+			YLSLogger().Fatal("failed to initialize Youtube Stream Uploader Client", zap.Error(err))
 		}
 
 		streams, err := getStreamsFromFile()
@@ -40,22 +44,9 @@ var startCmd = &cobra.Command{
 			YLSLogger().Fatal("unable to get streams from input file", zap.String("file", streamConfigFile), zap.Error(err))
 		}
 
-		ub := stream.NewStreamUploadClientBuilder()
-		if err := ub.InitService(&stream.ServiceConfig{
-			Ctx:         ctx,
-			OauthConfig: oauthConfigFile,
-			Cache:       secretsCache,
-		}); err != nil {
-			YLSLogger().Fatal("unable to initialize Youtube service client", zap.Error(err))
-		}
-		if dryRun {
-			ub.SetDryRun()
-		}
-		streamUploader := ub.Build()
-
 		if runNow {
 			for _, s := range streams.Items {
-				streamUploader.Upload(&s)()
+				streamUploader.Upload(&s)() // this is kindof ugly :(
 			}
 
 			YLSLogger().Info("completed jobs for all configured streams", zap.Int("jobCount", len(streams.Items)))
@@ -101,10 +92,9 @@ func getStreamsFromFile() (*stream.StreamList, error) {
 }
 
 func init() {
-	h, _ := os.UserHomeDir()
-
-	startCmd.Flags().StringVarP(&streamConfigFile, "input", "i", path.Join(h, ".yls.yaml"), "the path to the file which specifies configuration for youtube stream schedules (default '$HOME/.yls.yaml')")
+	startCmd.Flags().StringVarP(&streamConfigFile, "input", "i", "", "the path to the file which specifies configuration for youtube stream schedules")
 	startCmd.Flags().BoolVarP(&runNow, "now", "n", false, "specifies whether to execute all configured stream jobs immediately instead of scheduling them for a future date/time. Note that any future jobs will NOT be scheduled when this flag is specified.")
 
+	startCmd.MarkFlagRequired("input")
 	rootCmd.AddCommand(startCmd)
 }

@@ -1,3 +1,11 @@
+builds:
+  - ldflags:
+    - -s -w -X sykesdev.ca/yls/cmd.version={{.ENV.CI_COMMIT_TAG}}
+    - -s -w -X sykesdev.ca/yls/cmd.commitSha={{.ENV.CI_COMMIT_SHA}}
+    - -s -w -X sykesdev.ca/yls/cmd.targetOs={{.Os}}
+    - -s -w -X sykesdev.ca/yls/cmd.targetArch={{.Arch}}
+    - -s -w -X sykesdev.ca/yls/cmd.buildstamp={{.CommitTimestamp}}
+
 gitlab_urls:
   api: https://gitlab.sykesdev.ca/api/v4/
   download: https://gitlab.sykesdev.ca

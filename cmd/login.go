@@ -18,7 +18,7 @@ var loginCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		YLSLogger().Debug("config", zap.String("oauth_config", oauthConfigFile))
 		if oauthConfigFile == "" {
-			YLSLogger().Fatal("oauth configuration file is required. specify --oauth-config or use the environment variable YLS_OAUTH2_CONFIG")
+			YLSLogger().Fatal("oauth configuration file is required. specify --oauth-config")
 		}
 		b, err := os.ReadFile(oauthConfigFile)
 		if err != nil {

@@ -14,18 +14,16 @@ import (
 	"sykesdev.ca/yls/pkg/logging"
 )
 
-var YLSLogger = logging.YLSLogger
-
 func Get(ctx context.Context, secretsCache string, config *oauth2.Config) *http.Client {
 	tok, err := tokenFromFile(secretsCache)
 	if err != nil {
-		YLSLogger().Warn("unable to get token from secrets file", zap.Error(err))
-		YLSLogger().Warn("trying to get token using device-code flow instead ...")
+		logging.YLSLogger().Warn("unable to get token from secrets file", zap.Error(err))
+		logging.YLSLogger().Warn("trying to get token using device-code flow instead ...")
 		tok = getTokenFromWeb(ctx, config)
 		saveToken(secretsCache, tok)
 	}
 
-	YLSLogger().Debug("successfully obtained access and refresh tokens for oauth client", zap.String("cacheLocation", secretsCache))
+	logging.YLSLogger().Debug("successfully obtained access and refresh tokens for oauth client", zap.String("cacheLocation", secretsCache))
 	return config.Client(ctx, tok)
 }
 
@@ -59,7 +57,7 @@ func tokenFromFile(file string) (*oauth2.Token, error) {
 	// only triggers if scopes setup by application owner do not include 'offline_access' and therefore do not include
 	// a refresh token.
 	if time.Now().After(t.Expiry) && t.RefreshToken == "" {
-		YLSLogger().Warn("youtube authentication tokens have expired",
+		logging.YLSLogger().Warn("youtube authentication tokens have expired",
 			zap.String("token", t.AccessToken),
 			zap.Time("expired", t.Expiry),
 			zap.String("rt", t.RefreshToken),
