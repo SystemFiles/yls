@@ -66,18 +66,14 @@ func (u *StreamUploadClient) Upload(s *Stream) func() {
 				Title:              s.Title,
 				Description:        s.Description,
 				ScheduledStartTime: time.Now().Local().Add(time.Duration(s.StartDelaySeconds) * time.Second).Format(time.RFC3339),
+				Thumbnails:         s.Thumbnail.Make(),
 			},
 			Status: &youtube.LiveBroadcastStatus{
-				PrivacyStatus:           s.PrivacyLevel,
-				MadeForKids:             false,
-				SelfDeclaredMadeForKids: false,
+				PrivacyStatus:           s.Privacy.Level,
+				MadeForKids:             s.Privacy.MadeForKids,
+				SelfDeclaredMadeForKids: s.Privacy.SelfDeclaredMadeForKids,
 			},
-			ContentDetails: &youtube.LiveBroadcastContentDetails{
-				EnableClosedCaptions: false,
-				EnableAutoStop:       true,
-				EnableDvr:            true,
-				ClosedCaptionsType:   "closedCaptionsDisabled",
-			},
+			ContentDetails: s.ContentDetails.Make(),
 		}
 
 		if u.dryRun {
