@@ -254,8 +254,15 @@ func (u *StreamUploadClient) Upload(s *Stream) func() {
 			logging.YLSLogger().Info("assigning configured thumbnails to published LiveBroadcast")
 			thumbnails := u.prepareThumbnails(s, broadcastResp)
 
-			broadcastResp.Snippet.Thumbnails = thumbnails
-			liveBroadcastUpdateCall := u.svc.LiveBroadcasts.Update([]string{"snippet"}, broadcastResp)
+			liveBroadcastUpdateCall := u.svc.LiveBroadcasts.Update([]string{"snippet"}, &youtube.LiveBroadcast{
+				Id: broadcastResp.Id,
+				Snippet: &youtube.LiveBroadcastSnippet{
+					Title:              broadcastResp.Snippet.Title,
+					Description:        broadcastResp.Snippet.Description,
+					ScheduledStartTime: broadcastResp.Snippet.ScheduledStartTime,
+					Thumbnails:         thumbnails,
+				},
+			})
 			_, err = liveBroadcastUpdateCall.Do()
 			if err != nil {
 				logging.YLSLogger().Error("failed to update existing live broadcast with Thumbnail",
