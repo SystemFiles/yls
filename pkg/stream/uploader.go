@@ -54,6 +54,139 @@ func New(cfg *StreamUploaderConfig) (*StreamUploadClient, error) {
 	}, nil
 }
 
+func (u *StreamUploadClient) uploadThumbnail(s *youtube.ThumbnailsService, videoId, thumbnailPath string) (*youtube.ThumbnailSetResponse, error) {
+	f, err := os.Open(thumbnailPath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	logging.YLSLogger().Debug("thumbnail being uploaded", zap.String("path", thumbnailPath))
+	ts := s.Set(videoId)
+
+	resp, err := ts.Media(f).Do()
+	if err != nil {
+		return nil, err
+	}
+
+	logging.YLSLogger().Debug("thumbnail upload request completed!", zap.Int("status", resp.HTTPStatusCode))
+
+	return resp, nil
+}
+
+func (u *StreamUploadClient) prepareThumbnails(s *Stream, b *youtube.LiveBroadcast) *youtube.ThumbnailDetails {
+	var err error
+
+	const T_SET_DEFAULT = "default"
+	const T_SET_STANDARD = "standard"
+	const T_SET_MEDIUM = "medium"
+	const T_SET_HIGH = "high"
+	const T_SET_MAXRES = "maxres"
+
+	tSetResponses := make(map[string]*youtube.ThumbnailSetResponse, 5)
+	videoId := b.Id
+	thumbnailSvc := youtube.NewThumbnailsService(u.svc)
+
+	// defaultUrl is a helper to create a consistent format for the returned ThumbnailDetails struct
+	defaultUrl := func(r *youtube.ThumbnailSetResponse) string {
+		if r != nil && len(r.Items) > 0 && r.Items[0] != nil {
+			return r.Items[0].Default.Url
+		}
+
+		logging.YLSLogger().Debug("thumbnail set response was empty ... using default")
+		return ""
+	}
+
+	// Default
+	if s.Thumbnail.Default.Path != "" {
+		tSetResponses[T_SET_DEFAULT], err = u.uploadThumbnail(thumbnailSvc, videoId, s.Thumbnail.Default.Path)
+		if err != nil {
+			logging.YLSLogger().Error("unable to upload thumbnail for live broadcast",
+				zap.String("broadcastId", videoId),
+				zap.String("thumbnail_type", T_SET_DEFAULT),
+				zap.Error(err),
+			)
+		}
+	}
+
+	// Standard
+	if s.Thumbnail.Standard.Path != "" {
+		tSetResponses[T_SET_STANDARD], err = u.uploadThumbnail(thumbnailSvc, videoId, s.Thumbnail.Standard.Path)
+		if err != nil {
+			logging.YLSLogger().Error("unable to upload thumbnail for live broadcast",
+				zap.String("broadcastId", videoId),
+				zap.String("thumbnail_type", T_SET_STANDARD),
+				zap.Error(err),
+			)
+		}
+	}
+
+	// Medium
+	if s.Thumbnail.Medium.Path != "" {
+		tSetResponses[T_SET_MEDIUM], err = u.uploadThumbnail(thumbnailSvc, videoId, s.Thumbnail.Medium.Path)
+		if err != nil {
+			logging.YLSLogger().Error("unable to upload thumbnail for live broadcast",
+				zap.String("broadcastId", videoId),
+				zap.String("thumbnail_type", T_SET_MEDIUM),
+				zap.Error(err),
+			)
+		}
+	}
+
+	// High
+	if s.Thumbnail.High.Path != "" {
+		tSetResponses[T_SET_HIGH], err = u.uploadThumbnail(thumbnailSvc, videoId, s.Thumbnail.High.Path)
+		if err != nil {
+			logging.YLSLogger().Error("unable to upload thumbnail for live broadcast",
+				zap.String("broadcastId", videoId),
+				zap.String("thumbnail_type", T_SET_HIGH),
+				zap.Error(err),
+			)
+		}
+	}
+
+	// Max Resolution
+	if s.Thumbnail.Maxres.Path != "" {
+		tSetResponses[T_SET_MAXRES], err = u.uploadThumbnail(thumbnailSvc, videoId, s.Thumbnail.Maxres.Path)
+		if err != nil {
+			logging.YLSLogger().Error("unable to upload thumbnail for live broadcast",
+				zap.String("broadcastId", videoId),
+				zap.String("thumbnail_type", T_SET_MAXRES),
+				zap.Error(err),
+			)
+		}
+	}
+
+	return &youtube.ThumbnailDetails{
+		Default: &youtube.Thumbnail{
+			Width:  s.Thumbnail.Default.Width,
+			Height: s.Thumbnail.Default.Height,
+			Url:    defaultUrl(tSetResponses[T_SET_DEFAULT]),
+		},
+		High: &youtube.Thumbnail{
+			Width:  s.Thumbnail.High.Width,
+			Height: s.Thumbnail.High.Height,
+			Url:    defaultUrl(tSetResponses[T_SET_HIGH]),
+		},
+		Maxres: &youtube.Thumbnail{
+			Width:  s.Thumbnail.Maxres.Width,
+			Height: s.Thumbnail.Maxres.Height,
+			Url:    defaultUrl(tSetResponses[T_SET_MAXRES]),
+		},
+		Medium: &youtube.Thumbnail{
+			Width:  s.Thumbnail.Medium.Width,
+			Height: s.Thumbnail.Medium.Height,
+			Url:    defaultUrl(tSetResponses[T_SET_MEDIUM]),
+		},
+		Standard: &youtube.Thumbnail{
+			Width:  s.Thumbnail.Standard.Width,
+			Height: s.Thumbnail.Standard.Height,
+			Url:    defaultUrl(tSetResponses[T_SET_STANDARD]),
+		},
+	}
+
+}
+
 func (u *StreamUploadClient) Upload(s *Stream) func() {
 	return func() {
 		if u.svc == nil {
@@ -66,11 +199,9 @@ func (u *StreamUploadClient) Upload(s *Stream) func() {
 				Title:              s.Title,
 				Description:        s.Description,
 				ScheduledStartTime: time.Now().Local().Add(time.Duration(s.StartDelaySeconds) * time.Second).Format(time.RFC3339),
-				Thumbnails:         s.Thumbnail.Make(),
 			},
 			Status: &youtube.LiveBroadcastStatus{
 				PrivacyStatus:           s.Privacy.Level,
-				MadeForKids:             s.Privacy.MadeForKids,
 				SelfDeclaredMadeForKids: s.Privacy.SelfDeclaredMadeForKids,
 			},
 			ContentDetails: s.ContentDetails.Make(),
@@ -117,6 +248,28 @@ func (u *StreamUploadClient) Upload(s *Stream) func() {
 				zap.Strings("validStreamKeys", streamKeys),
 				zap.String("shareableLink", fmt.Sprintf("https://youtube.com/live/%s?feature=share", broadcastResp.Id)),
 				zap.String("embedableLink", fmt.Sprintf("https://youtube.com/embed/%s", broadcastResp.Id)),
+			)
+
+			// Upload and assign thumbnail to LiveBroadcast
+			logging.YLSLogger().Info("assigning configured thumbnails to published LiveBroadcast")
+			thumbnails := u.prepareThumbnails(s, broadcastResp)
+
+			broadcastResp.Snippet.Thumbnails = thumbnails
+			liveBroadcastUpdateCall := u.svc.LiveBroadcasts.Update([]string{"snippet"}, broadcastResp)
+			_, err = liveBroadcastUpdateCall.Do()
+			if err != nil {
+				logging.YLSLogger().Error("failed to update existing live broadcast with Thumbnail",
+					zap.String("broadcastId", broadcastResp.Id),
+					zap.String("streamName", s.Name),
+					zap.Error(err),
+				)
+			}
+
+			logging.YLSLogger().Info("uploaded and attached thumbnail to existing live broadcast successfully",
+				zap.String("streamName", s.Name),
+				zap.String("broadcastName", broadcastResp.Snippet.Title),
+				zap.String("scheduledStart", broadcastResp.Snippet.ScheduledStartTime),
+				zap.String("currentStatus", broadcastResp.Status.RecordingStatus),
 			)
 
 			if s.Publisher != nil {

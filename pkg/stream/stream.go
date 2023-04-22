@@ -12,20 +12,19 @@ type StreamList struct {
 }
 
 type Stream struct {
-	Name              string                        `yaml:"name"`
-	Title             string                        `yaml:"title"`
-	Thumbnail         *StreamThumbnailDetailsConfig `yaml:"thumbnails,omitempty"`
-	Description       string                        `yaml:"description"`
-	Schedule          string                        `yaml:"schedule"`
-	StartDelaySeconds uint16                        `yaml:"delaySeconds"`
-	Privacy           *StreamPrivacy                `yaml:"privacy,omitempty"`
-	ContentDetails    StreamContentDetailsConfig    `yaml:"contentDetails,omitempty"`
-	Publisher         *pub.PublisherConfig          `yaml:"publisher,omitempty"`
+	Name              string                       `yaml:"name"`
+	Title             string                       `yaml:"title"`
+	Thumbnail         StreamThumbnailDetailsConfig `yaml:"thumbnails,omitempty"`
+	Description       string                       `yaml:"description"`
+	Schedule          string                       `yaml:"schedule"`
+	StartDelaySeconds uint16                       `yaml:"delaySeconds"`
+	Privacy           StreamPrivacy                `yaml:"privacy,omitempty"`
+	ContentDetails    StreamContentDetailsConfig   `yaml:"contentDetails,omitempty"`
+	Publisher         *pub.PublisherConfig         `yaml:"publisher,omitempty"`
 }
 
 type StreamPrivacy struct {
 	Level                   string `yaml:"level,omitempty"`
-	MadeForKids             bool   `yaml:"madeForKids,omitempty"`
 	SelfDeclaredMadeForKids bool   `yaml:"selfDeclaredMadeForKids,omitempty"`
 }
 
@@ -66,35 +65,17 @@ func (cd *StreamContentDetailsConfig) Make() *youtube.LiveBroadcastContentDetail
 }
 
 type StreamThumbnailDetailsConfig struct {
-	Default  *StreamThumbnailConfig `yaml:"default,omitempty"`
-	High     *StreamThumbnailConfig `yaml:"high,omitempty"`
-	Maxres   *StreamThumbnailConfig `yaml:"maxres,omitempty"`
-	Medium   *StreamThumbnailConfig `yaml:"medium,omitempty"`
-	Standard *StreamThumbnailConfig `yaml:"standard,omitempty"`
-}
-
-func (td *StreamThumbnailDetailsConfig) Make() *youtube.ThumbnailDetails {
-	return &youtube.ThumbnailDetails{
-		Default:  td.Default.Make(),
-		High:     td.High.Make(),
-		Maxres:   td.Maxres.Make(),
-		Medium:   td.Medium.Make(),
-		Standard: td.Standard.Make(),
-	}
+	Default  StreamThumbnailConfig `yaml:"default,omitempty"`
+	High     StreamThumbnailConfig `yaml:"high,omitempty"`
+	Maxres   StreamThumbnailConfig `yaml:"maxres,omitempty"`
+	Medium   StreamThumbnailConfig `yaml:"medium,omitempty"`
+	Standard StreamThumbnailConfig `yaml:"standard,omitempty"`
 }
 
 type StreamThumbnailConfig struct {
 	Width  int64  `yaml:"width,omitempty"`
 	Height int64  `yaml:"height,omitempty"`
-	Url    string `yaml:"url"`
-}
-
-func (t *StreamThumbnailConfig) Make() *youtube.Thumbnail {
-	return &youtube.Thumbnail{
-		Width:  t.Width,
-		Height: t.Height,
-		Url:    t.Url,
-	}
+	Path   string `yaml:"path"`
 }
 
 type StreamThumbnail struct {

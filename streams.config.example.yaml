@@ -4,7 +4,12 @@ streams:
     description: "Example Description ... .. ... .."
     schedule: "*/1 * * * *" # every 10 minutes
     delaySeconds: 1800 # delay stream start time for 30 minutes
-    privacyLevel: "unlisted"
+    privacy:
+      level: "unlisted"
+      # selfDeclaredMadeForKids: false
+    # thumbnails:
+    #   default:
+    #     url: https://churchofgodhamilton.ca/wp-content/uploads/2023/04/pathway-g8cbc510b4_1920-min-min-min.jpg
     # publisher:
     #   wordpress:
     #     host: example.ca
