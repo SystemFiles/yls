@@ -1,24 +1,59 @@
 streams:
-  - name: Example Stream
-    title: Example Stream
-    description: "Example Description ... .. ... .."
-    schedule: "*/1 * * * *" # every 10 minutes
+  - name: example
+    title: Example Live Stream
+    description: "Example description ... ..."
+    schedule: "0 0 * * 6" # every Saturday at midnight (0:00 LOCAL TIME)
     delaySeconds: 1800 # delay stream start time for 30 minutes
     privacy:
-      level: "unlisted"
+      # possible options include: 'private', 'unlisted', 'public'
+      level: private
+      # selfDeclaredMadeForKids defaults to 'false'. If 'true', the creator declares the broadcast to be kids only: go/live-cw-work
       # selfDeclaredMadeForKids: false
-    # thumbnails:
-    #   default:
-    #     url: https://churchofgodhamilton.ca/wp-content/uploads/2023/04/pathway-g8cbc510b4_1920-min-min-min.jpg
+    # The contentDetails object contains information about the event's video content,
+    # such as whether the content can be shown in an embedded video player or if 
+    # it will be archived and therefore available for viewing after the event has concluded.
+    # contentDetails: {}
+      # enableEmbed: true
+      # enableClosedCaptions: false
+      # enableAutoStart: true
+      # enableAutoStop: true
+      # enableContentEncryption: false
+      # enableDvr: true
+      # enableLowLatency: false
+      # closedCaptionsType: closedCaptionsDisabled
+      # latencyPreference: normal
+      # mesh: ""
+      # projection: ""
+      # recordFromStart: false
+      # startWithSlate: false
+      # stereoLayout: stereoLayoutUnspecified
+    # thumbnails: {}
+      # default: {}
+      #   width: 1920
+      #   height: 1080
+      #   path: /media/thumbnail.jpeg
+      # high: {}
+      #   path: /media/thumbnail.jpeg
+      # maxres: {}
+      #   path: /media/thumbnail.jpeg
+      # medium: {}
+      #   path: /media/thumbnail.jpeg
+      # standard: {}
+      #   path: /media/thumbnail.jpeg
     # publisher:
     #   wordpress:
-    #     host: example.ca
-    #     port: 80
-    #     tls: no
-    #     username: admin
-    #     appToken: "AAAA BBBB CCCC DDDD EEEE FFFF"
+    #     host: churchofgodhamilton.ca
+    #     port: 443
+    #     tls: yes
+    #     username: lsautosa01
+    #     appToken: "XQb6 gN2g h5gd NzRr Kpsn bwHf"
     #     content:
     #       meta:
-    #         status: published
+    #         titleOverride: Live
+    #         slug: live
+    #         type: page
+    #         password: "password.1"
+    #         status: private
+    #         existingId: 31275
     #       content: |
     #         <h1>Hello</h1>

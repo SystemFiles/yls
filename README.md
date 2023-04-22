@@ -78,38 +78,7 @@ Now you should be ready to start configuring `Streams` for use in the applicatio
 
 ## Configuration of Streams
 
-Create a file somewhere to configure Streams (you can call it whatever you like). The file **MUST** be in YAML format, however.
-
-Your file should follow be configured as shown:
-
-```yaml
-streams:
-  - name: Example Stream
-    title: Example Stream
-    description: "Example Description ... .. ... .."
-    schedule: "*/1 * * * *" # every 10 minutes
-    delaySeconds: 1800 # delay stream start time for 30 minutes
-    privacyLevel: "unlisted"
-    # publisher:
-    #   wordpress:
-    #     host: example.ca
-    #     port: 80
-    #     tls: no
-    #     username: admin
-    #     appToken: "AAAA BBBB CCCC DDDD EEEE FFFF"
-    #     content:
-    #       meta:
-    #         status: published
-    #       content: |
-    #         <h1>Hello</h1>
-```
-
-> If you'd like you can copy the [example configuration](/streams.config.example.yaml) and simply edit it.
-
-```bash
-# assumes you are currently in the git repository
-cat $(pwd)/streams.config.example.yaml > ~/.yls.yaml
-```
+Create a file somewhere to configure Streams (you can call it whatever you like). The file **MUST** be in YAML format, however. Take a look at our [example configuration](/streams.config.example.yaml) for some ideas.
 
 ## Running the App
 
@@ -137,7 +106,7 @@ I'd like to expand the built-in publishers at some point (just need to find the 
 ### Extra Considerations
 
 - The cache used for OAuth2.0 should be considered sensitive since it also contains refresh tokens in addition to access tokens. Access tokens are short-lived and would likely not be a huge threat, but refresh tokens tend to be longer-lived and can be exchanged for new access tokens
-- To configure streaming software using a non-default stream-key, you might need to manually access the YouTube livestream portal. The API does not differenciate between "Live Now" and "Events". As a result, we cannot programmatically gain access to "Live Now" ingestion information such as the stream-key.
+- To configure streaming software using a non-default stream-key, you might need to manually access the YouTube livestream portal. The API does not differenciate between "Live Now" and "Events". As a result, we cannot programmatically gain access to "Live Now" ingestion information such as the stream-key. This should only need to be set a single time and future Livestreams should respect this.
 
 ## Maintainer / Author
 - Ben Sykes (ben.sykes@statcan.gc.ca)
